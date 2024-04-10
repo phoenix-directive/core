@@ -3,6 +3,8 @@ package keeper
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
+	errorsmod "cosmossdk.io/errors"
+	customterratypes "github.com/terra-money/core/v2/x/bank/types"
 	"github.com/terra-money/core/v2/x/tokenfactory/types"
 )
 
@@ -39,16 +41,27 @@ func (k Keeper) burnFrom(ctx sdk.Context, amount sdk.Coin, burnFrom string) erro
 	if err != nil {
 		return err
 	}
+	coins := sdk.NewCoins(amount)
 
 	err = k.bankKeeper.SendCoinsFromAccountToModule(ctx,
 		addr,
 		types.ModuleName,
-		sdk.NewCoins(amount))
+		coins)
 	if err != nil {
 		return err
 	}
+	recipientAcc := k.accountKeeper.GetModuleAccount(ctx, types.ModuleName)
+	if recipientAcc == nil {
+		panic(errorsmod.Wrapf(customterratypes.ErrUnknownAddress, "module account %s does not exist", recipientAcc))
+	}
 
-	return k.bankKeeper.BurnCoins(ctx, types.ModuleName, sdk.NewCoins(amount))
+	err = k.bankKeeper.BlockBeforeSend(ctx, addr, recipientAcc.GetAddress(), coins)
+	if err != nil {
+		return err
+	}
+	k.bankKeeper.TrackBeforeSend(ctx, addr, recipientAcc.GetAddress(), coins)
+
+	return k.bankKeeper.BurnCoins(ctx, types.ModuleName, coins)
 }
 
 func (k Keeper) forceTransfer(ctx sdk.Context, amount sdk.Coin, fromAddr string, toAddr string) error {

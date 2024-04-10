@@ -42,6 +42,12 @@ GRPCPORT_2=9090
 GRPCWEB_1=8091
 GRPCWEB_2=9091
 
+# Install current version of terra core
+echo "Installing current version of the binary..."
+cd ..
+make install
+cd integration-tests
+
 # Stop if it is already running 
 if pgrep -x "$BINARY" >/dev/null; then
     echo "Terminating $BINARY..."
