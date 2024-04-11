@@ -20,7 +20,7 @@ type (
 		storeKey storetypes.StoreKey
 
 		accountKeeper  types.AccountKeeper
-		bankKeeper     customtypes.Keeper
+		bankKeeper     *customtypes.Keeper
 		contractKeeper types.ContractKeeper
 
 		communityPoolKeeper types.CommunityPoolKeeper
@@ -34,7 +34,7 @@ type (
 func NewKeeper(
 	storeKey storetypes.StoreKey,
 	accountKeeper types.AccountKeeper,
-	bankKeeper customtypes.Keeper,
+	bankKeeper *customtypes.Keeper,
 	communityPoolKeeper types.CommunityPoolKeeper,
 	cdc codec.BinaryCodec,
 	authority string,

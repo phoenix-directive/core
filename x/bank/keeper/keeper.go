@@ -60,6 +60,39 @@ func (k Keeper) SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.A
 	return k.Keeper.SendCoins(ctx, fromAddr, toAddr, amt)
 }
 
+// SendCoinsFromAccountToModule transfers coins from an AccAddress to a ModuleAccount.
+// It will panic if the module account does not exist.
+func (k Keeper) SendCoinsFromAccountToModule(ctx sdk.Context, senderAddr sdk.AccAddress, recipientModule string, amt sdk.Coins) error {
+	recipientAcc := k.ak.GetModuleAccount(ctx, recipientModule)
+	if recipientAcc == nil {
+		panic(errorsmod.Wrapf(customterratypes.ErrUnknownAddress, "module account %s does not exist", recipientModule))
+	}
+	err := k.BlockBeforeSend(ctx, senderAddr, recipientAcc.GetAddress(), amt)
+	if err != nil {
+		return err
+	}
+	k.TrackBeforeSend(ctx, senderAddr, recipientAcc.GetAddress(), amt)
+
+	return k.Keeper.SendCoinsFromAccountToModule(ctx, senderAddr, recipientModule, amt)
+}
+
+// SendCoinsFromModuleToAccount transfers coins from a ModuleAccount to an AccAddress.
+// It will panic if the module account does not exist. An error is returned if
+// the recipient address is black-listed or if sending the tokens fails.
+func (k Keeper) SendCoinsFromModuleToAccount(ctx sdk.Context, senderModule string, recipientAddr sdk.AccAddress, amt sdk.Coins) error {
+	senderAddr := k.ak.GetModuleAddress(senderModule)
+	if senderAddr == nil {
+		panic(errorsmod.Wrapf(customterratypes.ErrUnknownAddress, "module account %s does not exist", senderModule))
+	}
+	err := k.BlockBeforeSend(ctx, senderAddr, recipientAddr, amt)
+	if err != nil {
+		return err
+	}
+	k.TrackBeforeSend(ctx, senderAddr, recipientAddr, amt)
+
+	return k.Keeper.SendCoinsFromModuleToAccount(ctx, senderModule, recipientAddr, amt)
+}
+
 // SendCoinsFromModuleToManyAccounts transfers coins from a ModuleAccount to multiple AccAddresses.
 // It will panic if the module account does not exist. An error is returned if
 // the recipient address is black-listed or if sending the tokens fails.
