@@ -30,7 +30,7 @@ func CreateUpgradeHandler(
 		// https://github.com/strangelove-ventures/escrow-checker/commit/adf0d867e2210c9ff0a27d8dff1c74ed0c8a00dc
 		updates := []EscrowUpdate{
 			{
-				EscrowAddress: sdk.AccAddress("terra1s308jav50mgct9x4f87u23w2tfe8q6qe45y7s4"),
+				EscrowAddress: sdk.MustAccAddressFromBech32("terra1s308jav50mgct9x4f87u23w2tfe8q6qe45y7s4"),
 				Assets:        []sdk.Coin{sdk.NewCoin("ibc/815FC81EB6BD612206BD9A9909A02F7691D24A5B97CDFE2124B1BDCA9D4AB14C", sdk.NewInt(1000000000))},
 			},
 		}
