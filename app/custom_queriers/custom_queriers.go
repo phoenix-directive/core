@@ -3,14 +3,16 @@ package custom_queriers
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+
 	"github.com/CosmWasm/wasmd/x/wasm"
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
-	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	alliancebindings "github.com/terra-money/alliance/x/alliance/bindings"
 	alliancekeeper "github.com/terra-money/alliance/x/alliance/keeper"
 	tokenfactorybindings "github.com/terra-money/core/v2/x/tokenfactory/bindings"
 	tokenfactorykeeper "github.com/terra-money/core/v2/x/tokenfactory/keeper"
-	"strings"
+
+	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )

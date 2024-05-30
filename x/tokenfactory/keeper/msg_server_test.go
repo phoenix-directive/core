@@ -2,8 +2,9 @@ package keeper_test
 
 import (
 	"fmt"
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	"testing"
+
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 
 	"github.com/stretchr/testify/suite"
 	"github.com/terra-money/core/v2/x/tokenfactory/types"

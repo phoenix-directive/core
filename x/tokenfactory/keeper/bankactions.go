@@ -1,10 +1,12 @@
 package keeper
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	"sort"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"sort"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	errorsmod "cosmossdk.io/errors"
 	customterratypes "github.com/terra-money/core/v2/x/bank/types"
