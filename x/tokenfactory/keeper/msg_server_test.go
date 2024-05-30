@@ -2,6 +2,7 @@ package keeper_test
 
 import (
 	"fmt"
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -185,6 +186,26 @@ func (s *KeeperTestSuite) TestBurnDenomMsg() {
 			s.AssertEventEmitted(ctx, types.TypeMsgBurn, tc.expectedMessageEvents)
 		})
 	}
+}
+
+func (s *KeeperTestSuite) TestForceTransferMsgFromModuleAcc() {
+	// Create a denom
+	res, _ := s.msgServer.CreateDenom(sdk.WrapSDKContext(s.Ctx), types.NewMsgCreateDenom(s.TestAccs[0].String(), "bitcoin"))
+	defaultDenom := res.GetNewTokenDenom()
+
+	s.Run(fmt.Sprintf("test force transfer"), func() {
+		mintAmt := sdk.NewInt64Coin(defaultDenom, 10)
+
+		_, err := s.msgServer.Mint(sdk.WrapSDKContext(s.Ctx), types.NewMsgMint(s.TestAccs[0].String(), mintAmt))
+
+		govModAcc := s.App.Keepers.AccountKeeper.GetModuleAccount(s.Ctx, govtypes.ModuleName)
+
+		err = s.App.Keepers.BankKeeper.SendCoins(s.Ctx, s.TestAccs[0], govModAcc.GetAddress(), sdk.NewCoins(mintAmt))
+		s.Require().NoError(err)
+
+		_, err = s.msgServer.ForceTransfer(s.Ctx, types.NewMsgForceTransfer(s.TestAccs[0].String(), mintAmt, govModAcc.GetAddress().String(), s.TestAccs[1].String()))
+		s.Require().ErrorContains(err, "send from module acc not available")
+	})
 }
 
 // TestCreateDenomMsg tests TypeMsgCreateDenom message is emitted on a successful denom creation
