@@ -4,6 +4,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	"github.com/stretchr/testify/suite"
 
@@ -57,4 +62,44 @@ func (s *KeeperTestSuite) TestCreateModuleAccount() {
 
 	// check that the account number of the module account is now initialized correctly
 	s.Require().Equal(nextAccountNumber+1, tokenfactoryModuleAccount.GetAccountNumber())
+}
+
+func (s *KeeperTestSuite) TestBurnFromModuleAccount() {
+	// Create Msg Server
+	msgServer := keeper.NewMsgServerImpl(s.App.Keepers.TokenFactoryKeeper)
+
+	// Create token factory token
+	res, err := msgServer.CreateDenom(s.Ctx, &types.MsgCreateDenom{
+		Sender:   s.TestAccs[0].String(),
+		Subdenom: "bitcoin",
+	})
+	s.Require().NoError(err)
+
+	denom := res.GetNewTokenDenom()
+
+	// Gov address
+	govAddr := s.App.Keepers.AccountKeeper.GetModuleAddress("gov")
+	s.App.Keepers.AccountKeeper.SetModuleAccount(s.Ctx, authtypes.NewModuleAccount(authtypes.NewBaseAccount(govAddr, nil, 0, 0), "gov", authtypes.Minter))
+	ma := s.App.Keepers.AccountKeeper.GetAccount(s.Ctx, govAddr)
+	_, ok := ma.(authtypes.ModuleAccountI)
+	s.Require().True(ok)
+
+	_, err = msgServer.Mint(s.Ctx, &types.MsgMint{
+		Sender:        s.TestAccs[0].String(),
+		Amount:        sdk.NewCoin(denom, sdk.NewInt(1000)),
+		MintToAddress: s.TestAccs[0].String(),
+	})
+	s.Require().NoError(err)
+
+	// Send to gov address
+	err = s.App.Keepers.BankKeeper.SendCoinsFromAccountToModule(s.Ctx, s.TestAccs[0], "gov", sdk.NewCoins(sdk.NewCoin(denom, sdk.NewInt(1000))))
+	s.Require().NoError(err)
+
+	_, err = msgServer.Burn(s.Ctx, &types.MsgBurn{
+		Sender:          s.TestAccs[0].String(),
+		Amount:          sdk.NewCoin(denom, sdk.NewInt(1000)),
+		BurnFromAddress: govAddr.String(),
+	})
+
+	require.Error(s.T(), err)
 }
