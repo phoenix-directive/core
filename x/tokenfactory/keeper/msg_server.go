@@ -113,7 +113,7 @@ func (server msgServer) Burn(goCtx context.Context, msg *types.MsgBurn) (*types.
 		msg.BurnFromAddress = msg.Sender
 	}
 
-	accountI := server.Keeper.accountKeeper.GetAccount(ctx, sdk.AccAddress(msg.BurnFromAddress))
+	accountI := server.Keeper.accountKeeper.GetAccount(ctx, sdk.MustAccAddressFromBech32(msg.BurnFromAddress))
 	_, ok := accountI.(authtypes.ModuleAccountI)
 	if ok {
 		return nil, types.ErrBurnFromModuleAccount
