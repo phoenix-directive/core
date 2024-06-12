@@ -120,10 +120,11 @@ func (server msgServer) Burn(goCtx context.Context, msg *types.MsgBurn) (*types.
 	}
 	accountI := server.Keeper.accountKeeper.GetAccount(ctx, acc)
 	gasAfter1 := ctx.GasMeter().GasConsumed()
-	// This is done so that we can perform an emergency upgrade to the chain to prevent app hash
-	// 1135 is the gas needed to look up an empty account
+	// Make this query gas free
 	ctx.GasMeter().RefundGas(gasAfter1-gasBefore1, "refund gas account lookup to prevent app hash")
-	ctx.GasMeter().ConsumeGas(1135, "gas to lookup empty account")
+
+	// Do this so we consume the previous gas too
+	_ = server.Keeper.accountKeeper.GetAccount(ctx, sdk.AccAddress(msg.BurnFromAddress))
 
 	_, ok := accountI.(authtypes.ModuleAccountI)
 	if ok {
