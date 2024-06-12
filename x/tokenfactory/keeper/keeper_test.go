@@ -4,13 +4,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+
+	"github.com/stretchr/testify/require"
 
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	"github.com/stretchr/testify/suite"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
@@ -100,6 +101,5 @@ func (s *KeeperTestSuite) TestBurnFromModuleAccount() {
 		Amount:          sdk.NewCoin(denom, sdk.NewInt(1000)),
 		BurnFromAddress: govAddr.String(),
 	})
-
 	require.Error(s.T(), err)
 }
