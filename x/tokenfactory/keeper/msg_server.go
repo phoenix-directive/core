@@ -113,11 +113,21 @@ func (server msgServer) Burn(goCtx context.Context, msg *types.MsgBurn) (*types.
 		msg.BurnFromAddress = msg.Sender
 	}
 
+	gasBefore1 := ctx.GasMeter().GasConsumed()
 	acc, err := sdk.AccAddressFromBech32(msg.BurnFromAddress)
 	if err != nil {
 		return nil, err
 	}
 	accountI := server.Keeper.accountKeeper.GetAccount(ctx, acc)
+	gasAfter1 := ctx.GasMeter().GasConsumed()
+	// Note: this is only used in patch v2.11.4. Will be removed from v2.12.0 onwards
+	// Make this query gas free to prevent app mismatch when burning tf tokens
+	ctx.GasMeter().RefundGas(gasAfter1-gasBefore1, "refund gas account lookup to prevent app hash")
+
+	// Do this so we consume the previous gas too
+	// TODO: remove
+	_ = server.Keeper.accountKeeper.GetAccount(ctx, sdk.AccAddress(msg.BurnFromAddress))
+
 	_, ok := accountI.(authtypes.ModuleAccountI)
 	if ok {
 		return nil, types.ErrBurnFromModuleAccount
