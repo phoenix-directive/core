@@ -117,6 +117,7 @@ func (app *TerraApp) RegisterUpgradeHandlers() {
 		v2_12.CreateUpgradeHandler(
 			app.GetModuleManager(),
 			app.GetConfigurator(),
+			app.Keepers,
 		),
 	)
 }

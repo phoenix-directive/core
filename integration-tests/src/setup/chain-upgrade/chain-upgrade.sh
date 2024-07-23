@@ -42,10 +42,10 @@ fi
 # init genesis
 $OLD_BINARY init test --home $CHAIN_HOME --chain-id=$CHAIN_ID
 echo $VAL_MNEMONIC_1 | $OLD_BINARY keys add val1 --home $CHAIN_HOME --recover --keyring-backend=test
-VAL_ADDR_1=$($OLD_BINARY keys list emi --output=json | jq .[0].address -r)
+VAL_ADDR_1=$($OLD_BINARY keys list val1 --output=json | jq .[0].address -r)
 
 echo $WALLET_MNEMONIC_1 | $OLD_BINARY keys add wallet1 --home $CHAIN_HOME --recover --keyring-backend=test
-WALLET_ADDR_1=$($OLD_BINARY keys list emi --output=json | jq .[0].address -r)
+WALLET_ADDR_1=$($OLD_BINARY keys list wallet1 --output=json | jq .[0].address -r)
 
 $OLD_BINARY genesis add-genesis-account $($OLD_BINARY --home $CHAIN_HOME keys show val1 --keyring-backend test -a) 100000000000uluna  --home $CHAIN_HOME
 $OLD_BINARY genesis gentx val1 1000000000uluna --home $CHAIN_HOME --chain-id $CHAIN_ID --keyring-backend test
