@@ -3,6 +3,7 @@ package v2_12
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
+	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
 	"github.com/terra-money/core/v2/app/keepers"
@@ -21,7 +22,12 @@ func CreateUpgradeHandler(
 	cfg module.Configurator,
 	k keepers.TerraAppKeepers,
 ) upgradetypes.UpgradeHandler {
-	return func(ctx sdk.Context, plan upgradetypes.Plan, vm module.VersionMap) (module.VersionMap, error) {
+	return func(ctx sdk.Context, plan upgradetypes.Plan, vm module.VersionMap) (module.VersionMap, error) {		
+		// Included in the start to also run on testnet
+		if err := updateValidatorsMinCommissionRate(ctx, k.StakingKeeper); err != nil {
+			return nil, err
+		}
+
 		if ctx.ChainID() != "phoenix-1" {
 			return mm.RunMigrations(ctx, cfg, vm)
 		}
@@ -119,3 +125,36 @@ func CreateUpgradeHandler(
 		return mm.RunMigrations(ctx, cfg, vm)
 	}
 }
+
+func updateValidatorsMinCommissionRate(ctx sdk.Context, sk *stakingkeeper.Keeper) error {
+	// Update min commission rate for new / validators who are updating
+	stakingParams := sk.GetParams(ctx)
+	stakingParams.MinCommissionRate = sdk.MustNewDecFromStr("0.05")
+	if err := sk.SetParams(ctx, stakingParams); err != nil {
+	 return err
+	}
+   
+	// Update all validators to have a min commission rate of 5%
+	validators := sk.GetAllValidators(ctx)
+	for _, validator := range validators {
+	 update := false
+	 commission := validator.Commission
+	 if commission.MaxRate.LT(sdk.MustNewDecFromStr("0.05")) {
+	  commission.MaxRate = sdk.MustNewDecFromStr("0.05")
+	  update = true
+	 }
+	 if commission.Rate.LT(sdk.MustNewDecFromStr("0.05")) {
+	  // force update without checking the <24h restriction and the max update rate
+	  commission.Rate = sdk.MustNewDecFromStr("0.05")
+	  update = true
+	 }
+	 if update {
+	  validator.Commission.UpdateTime = ctx.BlockTime()
+	  if err := sk.Hooks().BeforeValidatorModified(ctx, validator.GetOperator()); err != nil {
+	   return err
+	  }
+	  sk.SetValidator(ctx, validator)
+	 }
+	}
+	return nil
+   }
