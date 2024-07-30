@@ -6,6 +6,8 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
+	accountkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
+	vestingtypes "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	distributionkeeper "github.com/cosmos/cosmos-sdk/x/distribution/keeper"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
@@ -43,10 +45,10 @@ func CreateUpgradeHandler(
 			multisigAddr = sdk.MustAccAddressFromBech32("")
 		}
 
-		if err := burnTokensFromAccount(ctx, k.StakingKeeper, k.BankKeeper, k.DistrKeeper, addr); err != nil {
+		if err := burnTokensFromAccount(ctx, k.StakingKeeper, k.BankKeeper, k.DistrKeeper, k.AccountKeeper, addr); err != nil {
 			return nil, err
 		}
-		if err := burnTokensFromAccount(ctx, k.StakingKeeper, k.BankKeeper, k.DistrKeeper, multisigAddr); err != nil {
+		if err := burnTokensFromAccount(ctx, k.StakingKeeper, k.BankKeeper, k.DistrKeeper, k.AccountKeeper, multisigAddr); err != nil {
 			return nil, err
 		}
 
@@ -87,7 +89,7 @@ func updateValidatorsMinCommissionRate(ctx sdk.Context, sk *stakingkeeper.Keeper
 	return nil
 }
 
-func burnTokensFromAccount(ctx sdk.Context, sk *stakingkeeper.Keeper, bk bankkeeper.Keeper, dk distributionkeeper.Keeper, addr sdk.AccAddress) error {
+func burnTokensFromAccount(ctx sdk.Context, sk *stakingkeeper.Keeper, bk bankkeeper.Keeper, dk distributionkeeper.Keeper, ak accountkeeper.AccountKeeper, addr sdk.AccAddress) error {
 	// Iterate delegations and unbond all shares
 	// burning the coins immediately
 	bondDenom := sk.GetParams(ctx).BondDenom
@@ -168,6 +170,15 @@ func burnTokensFromAccount(ctx sdk.Context, sk *stakingkeeper.Keeper, bk bankkee
 		sk.RemoveRedelegation(ctx, red)
 		return false
 	})
+
+	// Turn account back into a base account to remove all vesting information
+	acc := ak.GetAccount(ctx, addr)
+	if acc != nil {
+		vestingAccount, ok := acc.(*vestingtypes.BaseVestingAccount)
+		if ok {
+			ak.SetAccount(ctx, vestingAccount.BaseAccount)
+		}
+	}
 
 	// Burn all coins in the addr
 	bk.IterateAccountBalances(ctx, addr, func(balance sdk.Coin) bool {
