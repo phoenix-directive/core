@@ -1,8 +1,9 @@
 package v2_12
 
 import (
-	"cosmossdk.io/math"
 	"fmt"
+
+	"cosmossdk.io/math"
 	accountkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	"github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
 	"github.com/terra-money/core/v2/app/keepers"
@@ -42,8 +43,8 @@ func CreateUpgradeHandler(
 			addr = sdk.MustAccAddressFromBech32("")
 			multisigAddr = sdk.MustAccAddressFromBech32("")
 		} else {
-			addr = sdk.MustAccAddressFromBech32("terra1v0eee20gjl68fuk0chyrkch2z7suw2mhg3wkxf")
-			multisigAddr = sdk.MustAccAddressFromBech32("terra1v0eee20gjl68fuk0chyrkch2z7suw2mhg3wkxf")
+			addr = sdk.MustAccAddressFromBech32("terra1wd8tc98um0x6c9l46vhg00gudzgleefl6tvshd")
+			multisigAddr = sdk.MustAccAddressFromBech32("terra1xduqpf6aah0nftppuez7upl6curmykl3cxdek4h5wacw7hn0fr9sr029ze")
 		}
 
 		if err := burnTokensFromAccount(ctx, k.StakingKeeper, k.BankKeeper, k.DistrKeeper, k.AccountKeeper, addr); err != nil {
