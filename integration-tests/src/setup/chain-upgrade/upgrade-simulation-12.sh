@@ -56,7 +56,7 @@ CURRENT_TIME=$(date +%s)
 echo "Current time: $CURRENT_TIME"
 $OLD_BINARY genesis add-genesis-account $($OLD_BINARY --home $CHAIN_HOME keys show wallet1 --keyring-backend test -a) 100000000000uluna --vesting-amount 200000000uluna --vesting-start-time $CURRENT_TIME --vesting-end-time $(($CURRENT_TIME + 10000)) --home $CHAIN_HOME
 
-$OLD_BINARY genesis gentx val1 1000000000uluna --home $CHAIN_HOME --chain-id $CHAIN_ID --keyring-backend test
+$OLD_BINARY genesis gentx val1 1000000000uluna --home $CHAIN_HOME --chain-id $CHAIN_ID --keyring-backend test --commission-max-rate 0.01 --commission-rate 0.01 --commission-max-change-rate 0.01
 $OLD_BINARY genesis collect-gentxs --home $CHAIN_HOME
 
 sed -i -e "s/\"max_deposit_period\": \"172800s\"/\"max_deposit_period\": \"$GOV_PERIOD\"/g" $CHAIN_HOME/config/genesis.json
@@ -151,20 +151,38 @@ else
 fi
 sleep 15
 
-DELEGATIONS=$($NEW_BINARY query staking delegations $WALLET_ADDR_1 --output=json | jq ".delegation_responses | length")
+DELEGATIONS=$($NEW_BINARY query staking delegations $WALLET_ADDR_1 --home $CHAIN_HOME --output=json | jq ".delegation_responses | length")
 echo "DELEGATIONS $DELEGATIONS" 
 if [[ "$DELEGATIONS" == "0" ]]; then
     echo "Delegations removed when upgrading"
 fi
 
-UNBONDINGS=$($NEW_BINARY query staking unbonding-delegations $WALLET_ADDR_1 --output=json | jq ".unbonding_responses | length")
+UNBONDINGS=$($NEW_BINARY query staking unbonding-delegations $WALLET_ADDR_1 --home $CHAIN_HOME --output=json | jq ".unbonding_responses | length")
 echo "UNBONDINGS $UNBONDINGS" 
 if [[ "$UNBONDINGS" == "0" ]]; then
     echo "Unbondings removed when upgrading"
 fi
 
-BALANCES=$($NEW_BINARY query bank balances $WALLET_ADDR_1 --output=json | jq ".balances | length")
+BALANCES=$($NEW_BINARY query bank balances $WALLET_ADDR_1 --home $CHAIN_HOME --output=json | jq ".balances | length")
 echo "BALANCES $BALANCES" 
 if [[ "$BALANCES" == "0" ]]; then
     echo "Balance removed when upgrading"
+fi
+
+COMISSION_RATE=$($NEW_BINARY query staking validator $VALOPER_ADDR_1 --home $CHAIN_HOME --output=json | jq ".commission.commission_rates.rate" -r)
+echo "COMISSION_RATE $COMISSION_RATE"
+if [[ "$COMISSION_RATE" != "0.050000000000000000" ]]; then
+    echo "Commission rate not updated"
+fi
+
+MAX_COMISSION_RATE=$($NEW_BINARY query staking validator $VALOPER_ADDR_1 --home $CHAIN_HOME --output=json | jq ".commission.commission_rates.max_rate" -r)
+echo "MAX_COMISSION_RATE $MAX_COMISSION_RATE"
+if [[ "$MAX_COMISSION_RATE" != "0.050000000000000000" ]]; then
+    echo "Max commission rate not updated"
+fi
+
+COMISSION_RATE_CHANGE=$($NEW_BINARY query staking validator $VALOPER_ADDR_1 --home $CHAIN_HOME --output=json | jq ".commission.commission_rates.max_change_rate" -r)
+echo "COMISSION_RATE_CHANGE $COMISSION_RATE_CHANGE"
+if [[ "$COMISSION_RATE_CHANGE" != "0.010000000000000000" ]]; then
+    echo "Commission rate change not preserved"
 fi

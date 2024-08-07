@@ -2,6 +2,9 @@ package v2_12
 
 import (
 	"cosmossdk.io/math"
+	"fmt"
+	accountkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
+	"github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
 	"github.com/terra-money/core/v2/app/keepers"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -39,14 +42,14 @@ func CreateUpgradeHandler(
 			addr = sdk.MustAccAddressFromBech32("")
 			multisigAddr = sdk.MustAccAddressFromBech32("")
 		} else {
-			addr = sdk.MustAccAddressFromBech32("")
-			multisigAddr = sdk.MustAccAddressFromBech32("")
+			addr = sdk.MustAccAddressFromBech32("terra1v0eee20gjl68fuk0chyrkch2z7suw2mhg3wkxf")
+			multisigAddr = sdk.MustAccAddressFromBech32("terra1v0eee20gjl68fuk0chyrkch2z7suw2mhg3wkxf")
 		}
 
-		if err := burnTokensFromAccount(ctx, k.StakingKeeper, k.BankKeeper, k.DistrKeeper, addr); err != nil {
+		if err := burnTokensFromAccount(ctx, k.StakingKeeper, k.BankKeeper, k.DistrKeeper, k.AccountKeeper, addr); err != nil {
 			return nil, err
 		}
-		if err := burnTokensFromAccount(ctx, k.StakingKeeper, k.BankKeeper, k.DistrKeeper, multisigAddr); err != nil {
+		if err := burnTokensFromAccount(ctx, k.StakingKeeper, k.BankKeeper, k.DistrKeeper, k.AccountKeeper, multisigAddr); err != nil {
 			return nil, err
 		}
 
@@ -66,14 +69,13 @@ func updateValidatorsMinCommissionRate(ctx sdk.Context, sk *stakingkeeper.Keeper
 	validators := sk.GetAllValidators(ctx)
 	for _, validator := range validators {
 		update := false
-		commission := validator.Commission
-		if commission.MaxRate.LT(sdk.MustNewDecFromStr("0.05")) {
-			commission.MaxRate = sdk.MustNewDecFromStr("0.05")
+		if validator.Commission.MaxRate.LT(sdk.MustNewDecFromStr("0.05")) {
+			validator.Commission.MaxRate = sdk.MustNewDecFromStr("0.05")
 			update = true
 		}
-		if commission.Rate.LT(sdk.MustNewDecFromStr("0.05")) {
+		if validator.Commission.Rate.LT(sdk.MustNewDecFromStr("0.05")) {
 			// force update without checking the <24h restriction and the max update rate
-			commission.Rate = sdk.MustNewDecFromStr("0.05")
+			validator.Commission.Rate = sdk.MustNewDecFromStr("0.05")
 			update = true
 		}
 		if update {
@@ -87,7 +89,11 @@ func updateValidatorsMinCommissionRate(ctx sdk.Context, sk *stakingkeeper.Keeper
 	return nil
 }
 
-func burnTokensFromAccount(ctx sdk.Context, sk *stakingkeeper.Keeper, bk bankkeeper.Keeper, dk distributionkeeper.Keeper, addr sdk.AccAddress) error {
+func burnTokensFromAccount(ctx sdk.Context, sk *stakingkeeper.Keeper, bk bankkeeper.Keeper, dk distributionkeeper.Keeper, ak accountkeeper.AccountKeeper, addr sdk.AccAddress) error {
+	acc := ak.GetAccount(ctx, addr)
+	if acc == nil {
+		return fmt.Errorf("account %s not found", addr)
+	}
 	// Iterate delegations and unbond all shares
 	// burning the coins immediately
 	bondDenom := sk.GetParams(ctx).BondDenom
@@ -168,6 +174,18 @@ func burnTokensFromAccount(ctx sdk.Context, sk *stakingkeeper.Keeper, bk bankkee
 		sk.RemoveRedelegation(ctx, red)
 		return false
 	})
+
+	// Set account back to a base account before burning to vest everything
+	switch vestingAcc := acc.(type) {
+	case *types.ContinuousVestingAccount:
+		ak.SetAccount(ctx, vestingAcc.BaseVestingAccount)
+	case *types.DelayedVestingAccount:
+		ak.SetAccount(ctx, vestingAcc.BaseVestingAccount)
+	case *types.PeriodicVestingAccount:
+		ak.SetAccount(ctx, vestingAcc.BaseVestingAccount)
+	default:
+		// do nothing
+	}
 
 	// Burn all coins in the addr
 	bk.IterateAccountBalances(ctx, addr, func(balance sdk.Coin) bool {
