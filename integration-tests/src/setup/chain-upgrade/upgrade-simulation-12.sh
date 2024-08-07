@@ -54,7 +54,7 @@ $OLD_BINARY genesis add-genesis-account $($OLD_BINARY --home $CHAIN_HOME keys sh
 
 CURRENT_TIME=$(date +%s)
 echo "Current time: $CURRENT_TIME"
-$OLD_BINARY genesis add-genesis-account $($OLD_BINARY --home $CHAIN_HOME keys show wallet1 --keyring-backend test -a) 100000000000uluna --vesting-amount 100000uluna --vesting-start-time $CURRENT_TIME --vesting-end-time $(($CURRENT_TIME + 10000)) --home $CHAIN_HOME
+$OLD_BINARY genesis add-genesis-account $($OLD_BINARY --home $CHAIN_HOME keys show wallet1 --keyring-backend test -a) 100000000000uluna --vesting-amount 200000000uluna --vesting-start-time $CURRENT_TIME --vesting-end-time $(($CURRENT_TIME + 10000)) --home $CHAIN_HOME
 
 $OLD_BINARY genesis gentx val1 1000000000uluna --home $CHAIN_HOME --chain-id $CHAIN_ID --keyring-backend test
 $OLD_BINARY genesis collect-gentxs --home $CHAIN_HOME
@@ -78,13 +78,13 @@ fi
 
 sleep 15
 
-VALOPER_ADDR_1=$($OLD_BINARY q staking validators --output=json | jq .validators[0].operator_address -r)
+VALOPER_ADDR_1=$($OLD_BINARY q staking validators --output=json --home $CHAIN_HOME | jq .validators[0].operator_address -r)
 
 # Stake and assert it is staked
 echo "Delegate"
 NO_ECHO=$($OLD_BINARY tx staking delegate $VALOPER_ADDR_1 100000000uluna --keyring-backend test --chain-id $CHAIN_ID --home $CHAIN_HOME --from wallet1 -y)
 sleep 2
-DELEGATIONS=$($OLD_BINARY query staking delegations $WALLET_ADDR_1 --output=json | jq ".delegation_responses | length")
+DELEGATIONS=$($OLD_BINARY query staking delegations $WALLET_ADDR_1 --home $CHAIN_HOME --output=json | jq ".delegation_responses | length")
 if [[ "$DELEGATIONS" == "0" ]]; then
     echo "Delegation failed"
     exit 1
@@ -94,13 +94,13 @@ fi
 echo "Unbond"
 NO_ECHO=$($OLD_BINARY tx staking unbond $VALOPER_ADDR_1 1000000uluna --keyring-backend test --chain-id $CHAIN_ID --home $CHAIN_HOME --from wallet1 -y)
 sleep 2
-UNBONDINGS=$($OLD_BINARY query staking unbonding-delegations $WALLET_ADDR_1 --output=json | jq ".unbonding_responses | length" )
+UNBONDINGS=$($OLD_BINARY query staking unbonding-delegations $WALLET_ADDR_1 --home $CHAIN_HOME --output=json | jq ".unbonding_responses | length" )
 if [[ "$UNBONDINGS" == "0" ]]; then
     echo "Unbonding failed"
     exit 1
 fi
 
-GOV_ADDRESS=$($OLD_BINARY query auth module-account gov --output json | jq .account.base_account.address -r)
+GOV_ADDRESS=$($OLD_BINARY query auth module-account gov --home $CHAIN_HOME --output json | jq .account.base_account.address -r)
 echo '{
   "messages": [
     {
@@ -128,14 +128,14 @@ NO_ECHO=$($OLD_BINARY tx gov vote 1 yes --from val1 --keyring-backend test --cha
 
 ## determine block_height to halt
 while true; do
-    BLOCK_HEIGHT=$($OLD_BINARY status | jq '.SyncInfo.latest_block_height' -r)
+    BLOCK_HEIGHT=$($OLD_BINARY status --home $CHAIN_HOME | jq '.SyncInfo.latest_block_height' -r)
     if [ $BLOCK_HEIGHT = "$UPGRADE_HEIGHT" ]; then
         # assuming running only 1 terrad
         echo "BLOCK HEIGHT = $UPGRADE_HEIGHT REACHED, STOPPING OLD BINARY"
         pkill terrad_old
         break
     else
-        STATUS=$($OLD_BINARY query gov proposal 1 --output=json | jq ".status" -r)
+        STATUS=$($OLD_BINARY query gov proposal 1 --output=json --home $CHAIN_HOME | jq ".status" -r)
         echo "BLOCK_HEIGHT = $BLOCK_HEIGHT $STATUS"
         sleep 1
     fi
