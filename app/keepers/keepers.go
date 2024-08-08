@@ -306,6 +306,7 @@ func NewTerraAppKeepers(
 	)
 	keepers.TokenFactoryKeeper = tokenfactorykeeper.NewKeeper(
 		keys[tokenfactorytypes.StoreKey],
+		maccPerms,
 		keepers.AccountKeeper,
 		&keepers.BankKeeper,
 		keepers.DistrKeeper,
