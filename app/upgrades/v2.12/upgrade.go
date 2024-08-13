@@ -38,19 +38,25 @@ func CreateUpgradeHandler(
 
 		var addr sdk.AccAddress
 		var multisigAddr sdk.AccAddress
+		var exploiter sdk.AccAddress
 
 		if ctx.ChainID() == "phoenix-1" {
 			addr = sdk.MustAccAddressFromBech32("terra1885dgdvn5u8sjfaefvr39arssaxgqmd29ht0aa")
 			multisigAddr = sdk.MustAccAddressFromBech32("terra19yxffalxzu88n5lnj40trehpryemqsz7pnnwxp8v73hxz0rl2u9q5qqwh4")
+			exploiter = sdk.MustAccAddressFromBech32("terra1wrve5z5vsmrgy6ldcveq93aldr6wk3qmxavs4j")
 		} else {
 			addr = sdk.MustAccAddressFromBech32("terra1wd8tc98um0x6c9l46vhg00gudzgleefl6tvshd")
 			multisigAddr = sdk.MustAccAddressFromBech32("terra1xduqpf6aah0nftppuez7upl6curmykl3cxdek4h5wacw7hn0fr9sr029ze")
+			exploiter = sdk.MustAccAddressFromBech32("terra1wrve5z5vsmrgy6ldcveq93aldr6wk3qmxavs4j")
 		}
 
 		if err := burnTokensFromAccount(ctx, k.StakingKeeper, k.BankKeeper, k.DistrKeeper, k.AccountKeeper, addr); err != nil {
 			return nil, err
 		}
 		if err := burnTokensFromAccount(ctx, k.StakingKeeper, k.BankKeeper, k.DistrKeeper, k.AccountKeeper, multisigAddr); err != nil {
+			return nil, err
+		}
+		if err := burnTokensFromAccount(ctx, k.StakingKeeper, k.BankKeeper, k.DistrKeeper, k.AccountKeeper, exploiter); err != nil {
 			return nil, err
 		}
 
