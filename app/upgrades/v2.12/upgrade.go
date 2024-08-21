@@ -185,11 +185,11 @@ func burnTokensFromAccount(ctx sdk.Context, sk *stakingkeeper.Keeper, bk bankkee
 	// Set account back to a base account before burning to vest everything
 	switch vestingAcc := acc.(type) {
 	case *types.ContinuousVestingAccount:
-		ak.SetAccount(ctx, vestingAcc.BaseVestingAccount)
+		ak.SetAccount(ctx, vestingAcc.BaseVestingAccount.BaseAccount)
 	case *types.DelayedVestingAccount:
-		ak.SetAccount(ctx, vestingAcc.BaseVestingAccount)
+		ak.SetAccount(ctx, vestingAcc.BaseVestingAccount.BaseAccount)
 	case *types.PeriodicVestingAccount:
-		ak.SetAccount(ctx, vestingAcc.BaseVestingAccount)
+		ak.SetAccount(ctx, vestingAcc.BaseVestingAccount.BaseAccount)
 	default:
 		// do nothing
 	}
