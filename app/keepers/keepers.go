@@ -566,7 +566,7 @@ func (app *TerraAppKeepers) initParamsKeeper(appCodec codec.BinaryCodec, legacyA
 	paramsKeeper.Subspace(icqtypes.ModuleName)
 
 	// Custom Modules
-	paramsKeeper.Subspace(wasmtypes.ModuleName).WithKeyTable(wasmtypes.ParamKeyTable())
+	paramsKeeper.Subspace(wasmtypes.ModuleName)
 	paramsKeeper.Subspace(tokenfactorytypes.ModuleName).WithKeyTable(tokenfactorytypes.ParamKeyTable())
 	paramsKeeper.Subspace(feesharetypes.ModuleName).WithKeyTable(feesharetypes.ParamKeyTable())
 	paramsKeeper.Subspace(alliancetypes.ModuleName).WithKeyTable(alliancetypes.ParamKeyTable())
