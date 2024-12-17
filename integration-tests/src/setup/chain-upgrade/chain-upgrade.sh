@@ -1,11 +1,11 @@
 #!/bin/bash
 
-OLD_VERSION=release/v2.10
+OLD_VERSION=release/v2.12
 UPGRADE_HEIGHT=20
 CHAIN_ID=pisco-1
 CHAIN_HOME=$(pwd)/chain-upgrade-data
 DENOM=uluna
-SOFTWARE_UPGRADE_NAME="v2.11"
+SOFTWARE_UPGRADE_NAME="v2.13"
 GOV_PERIOD="5s"
 
 VAL_MNEMONIC_1="clock post desk civil pottery foster expand merit dash seminar song memory figure uniform spice circle try happy obvious trash crime hybrid hood cushion"
@@ -23,7 +23,7 @@ if ! command -v $OLD_BINARY &> /dev/null
 then
     mkdir -p /tmp/terra
     cd /tmp/terra
-    git clone https://github.com/terra-money/core
+    git clone https://github.com/phoenix-directive/core
     cd core
     git checkout $OLD_VERSION
     make build
@@ -42,12 +42,13 @@ fi
 # init genesis
 $OLD_BINARY init test --home $CHAIN_HOME --chain-id=$CHAIN_ID
 echo $VAL_MNEMONIC_1 | $OLD_BINARY keys add val1 --home $CHAIN_HOME --recover --keyring-backend=test
-VAL_ADDR_1=$($OLD_BINARY keys list val1 --output=json | jq .[0].address -r)
+VAL_ADDR_1=$($OLD_BINARY keys list val1 --output=json --home $CHAIN_HOME --keyring-backend=test | jq .[0].address -r)
 
 echo $WALLET_MNEMONIC_1 | $OLD_BINARY keys add wallet1 --home $CHAIN_HOME --recover --keyring-backend=test
-WALLET_ADDR_1=$($OLD_BINARY keys list wallet1 --output=json | jq .[0].address -r)
+WALLET_ADDR_1=$($OLD_BINARY keys list wallet1 --output=json --home $CHAIN_HOME --keyring-backend=test | jq .[0].address -r)
 
-$OLD_BINARY genesis add-genesis-account $($OLD_BINARY --home $CHAIN_HOME keys show val1 --keyring-backend test -a) 100000000000uluna  --home $CHAIN_HOME
+$OLD_BINARY genesis add-genesis-account $VAL_ADDR_1 100000000000uluna  --home $CHAIN_HOME
+$OLD_BINARY genesis add-genesis-account $WALLET_ADDR_1 100000000000uluna  --home $CHAIN_HOME
 $OLD_BINARY genesis gentx val1 1000000000uluna --home $CHAIN_HOME --chain-id $CHAIN_ID --keyring-backend test
 $OLD_BINARY genesis collect-gentxs --home $CHAIN_HOME
 
@@ -60,18 +61,19 @@ sed -i -e 's/index_all_keys = false/index_all_keys = true/g' $CHAIN_HOME/config/
 sed -i -e 's/enable = false/enable = true/g' $CHAIN_HOME/config/app.toml
 sed -i -e 's/swagger = false/swagger = true/g' $CHAIN_HOME/config/app.toml
 
+sed -i -e 's/localhost/127.0.0.1/g' $CHAIN_HOME/config/client.toml
 
 # run old node
 echo "Starting old binary on a separate process"
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    screen -L -dmS node1 $OLD_BINARY start --log_level trace --log_format json --home $CHAIN_HOME --pruning=nothing
+    screen -L -dmS node1 $OLD_BINARY start --log_format json --home $CHAIN_HOME --pruning=nothing
 else
-    screen -L -Logfile $CHAIN_HOME/log-screen.log -dmS node1 $OLD_BINARY start --log_level trace --log_format json --home $CHAIN_HOME --pruning=nothing
+    screen -L -Logfile $CHAIN_HOME/log-screen.log -dmS node1 $OLD_BINARY start --log_format json --home $CHAIN_HOME --pruning=nothing
 fi
 #
 sleep 15
 #
-GOV_ADDRESS=$($OLD_BINARY query auth module-account gov --output json | jq .account.base_account.address -r)
+GOV_ADDRESS=$($OLD_BINARY query auth module-account gov --output json --home $CHAIN_HOME | jq .account.base_account.address -r)
 echo '{
   "messages": [
     {
@@ -88,24 +90,24 @@ echo '{
   "metadata": "",
   "deposit": "550000000'$DENOM'",
   "title": "Upgrade to '$SOFTWARE_UPGRADE_NAME'",
-  "summary": "Source Code Version https://github.com/terra-money/core"
+  "summary": "Source Code Version https://github.com/phoenix-directive/core"
 }' > $CHAIN_HOME/software-upgrade.json
 
 #
 $OLD_BINARY tx gov submit-proposal $CHAIN_HOME/software-upgrade.json --from val1 --keyring-backend test --chain-id $CHAIN_ID --home $CHAIN_HOME  -y
-sleep 2
-$OLD_BINARY tx gov vote 1 yes --from val1 --keyring-backend test --chain-id $CHAIN_ID --home $CHAIN_HOME  -y
+# sleep 2
+# $OLD_BINARY tx gov vote 1 yes --from val1 --keyring-backend test --chain-id $CHAIN_ID --home $CHAIN_HOME  -y
 #
 ## determine block_height to halt
 while true; do
-    BLOCK_HEIGHT=$($OLD_BINARY status | jq '.SyncInfo.latest_block_height' -r)
+    BLOCK_HEIGHT=$($OLD_BINARY status --home $CHAIN_HOME | jq '.SyncInfo.latest_block_height' -r)
     if [ $BLOCK_HEIGHT = "$UPGRADE_HEIGHT" ]; then
         # assuming running only 1 terrad
         echo "BLOCK HEIGHT = $UPGRADE_HEIGHT REACHED, STOPPING OLD ONE"
         pkill terrad_old
         break
     else
-        $OLD_BINARY query gov proposal 1 --output=json | jq ".status"
+        $OLD_BINARY query gov proposal 1 --output=json --home $CHAIN_HOME | jq ".status"
         echo "BLOCK_HEIGHT = $BLOCK_HEIGHT"
         sleep 1
     fi
