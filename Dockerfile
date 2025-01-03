@@ -1,16 +1,23 @@
 # syntax=docker/dockerfile:1
 
-ARG GO_VERSION="1.22.10"
-ARG ALPINE_VERSION="3.20"
+ARG ALPINE_VERSION="3.18"
 ARG BUILDPLATFORM=linux/amd64
-ARG BASE_IMAGE="golang:${GO_VERSION}-alpine${ALPINE_VERSION}"
-FROM --platform=${BUILDPLATFORM} ${BASE_IMAGE} as base
+ARG BASE_IMAGE="alpine:${ALPINE_VERSION}"
+FROM --platform=${BUILDPLATFORM} ${BASE_IMAGE} AS base
 
 ###############################################################################
 # Builder
 ###############################################################################
 
-FROM base as builder-stage-1
+FROM base AS builder-stage-1
+ARG GO_VERSION="1.22.10"
+
+RUN wget https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz &&\
+    tar -C / -xvzf go${GO_VERSION}.linux-amd64.tar.gz &&\
+    rm go${GO_VERSION}.linux-amd64.tar.gz
+ENV PATH="$PATH:/go/bin"
+ENV GOPATH="/go"
+ENV CGO_ENABLED=1
 
 ARG GIT_COMMIT
 ARG GIT_VERSION
