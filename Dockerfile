@@ -11,14 +11,6 @@ FROM --platform=${BUILDPLATFORM} ${BASE_IMAGE} AS base
 
 FROM base AS builder-stage-1
 ARG GO_VERSION="1.22.10"
-
-RUN wget https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz &&\
-    tar -C / -xvzf go${GO_VERSION}.linux-amd64.tar.gz &&\
-    rm go${GO_VERSION}.linux-amd64.tar.gz
-ENV PATH="$PATH:/go/bin"
-ENV GOPATH="/go"
-ENV CGO_ENABLED=1
-
 ARG GIT_COMMIT
 ARG GIT_VERSION
 ARG BUILDPLATFORM
@@ -27,6 +19,13 @@ ARG GOOS=linux \
 
 ENV GOOS=$GOOS \ 
     GOARCH=$GOARCH
+
+RUN wget https://go.dev/dl/go${GO_VERSION}.linux-${GOARCH}.tar.gz &&\
+    tar -C / -xvzf go${GO_VERSION}.linux-${GOARCH}.tar.gz &&\
+    rm go${GO_VERSION}.linux-${GOARCH}.tar.gz
+ENV PATH="$PATH:/go/bin"
+ENV GOPATH="/go"
+ENV CGO_ENABLED=1
 
 # NOTE: add libusb-dev to run with LEDGER_ENABLED=true
 RUN set -eux &&\
