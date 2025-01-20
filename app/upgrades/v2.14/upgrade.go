@@ -1,4 +1,4 @@
-package v2_13
+package v2_14
 
 import (
 	"slices"
@@ -10,11 +10,6 @@ import (
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
 )
-
-type EscrowUpdate struct {
-	EscrowAddress sdk.AccAddress
-	Assets        []sdk.Coin
-}
 
 func CreateUpgradeHandler(
 	mm *module.Manager,
