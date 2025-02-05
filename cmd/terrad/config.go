@@ -10,7 +10,7 @@ import (
 type TerraAppConfig struct {
 	serverconfig.Config
 
-	WASMConfig wasmtypes.WasmConfig `mapstructure:"wasm"`
+	WASMConfig wasmtypes.NodeConfig `mapstructure:"wasm"`
 }
 
 // initAppConfig helps to override default appConfig template and configs.
@@ -36,11 +36,9 @@ func initAppConfig() (string, interface{}) {
 	srvCfg.API.Enable = true
 	srvCfg.API.Swagger = true
 
-	srvCfg.Rosetta.DenomToSuggest = "uluna"
-
 	terraAppConfig := TerraAppConfig{
 		Config:     *srvCfg,
-		WASMConfig: wasmtypes.DefaultWasmConfig(),
+		WASMConfig: wasmtypes.DefaultNodeConfig(),
 	}
 
 	terraAppTemplate := serverconfig.DefaultConfigTemplate + wasmtypes.DefaultConfigTemplate()

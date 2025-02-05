@@ -21,8 +21,6 @@ package main
 
 // 	"cosmossdk.io/math"
 
-// 	"cosmossdk.io/simapp"
-
 // 	"github.com/cosmos/cosmos-sdk/client"
 // 	"github.com/cosmos/cosmos-sdk/client/flags"
 // 	"github.com/cosmos/cosmos-sdk/client/tx"
@@ -40,6 +38,8 @@ package main
 // 	"github.com/cosmos/cosmos-sdk/x/genutil"
 // 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 // 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+
+// 	terraapp "github.com/terra-money/core/v2/app"
 // )
 
 // var (
@@ -494,7 +494,11 @@ package main
 
 // // startTestnet starts an in-process testnet
 // func startTestnet(cmd *cobra.Command, args startArgs) error {
-// 	networkConfig := network.DefaultConfig(simapp.NewTestNetworkFixture)
+// 	networkConfig := network.DefaultConfig(func() network.TestFixture {
+// 		return network.TestFixture{
+// 			AppConstructor: terraapp.NewTerraApp,
+// 		}
+// 	})
 
 // 	// Default networkConfig.ChainID is random, and we should only override it if chainID provided
 // 	// is non-empty
