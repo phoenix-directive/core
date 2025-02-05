@@ -7,7 +7,6 @@ import (
 	storetypes "cosmossdk.io/store/types"
 	evidencetypes "cosmossdk.io/x/evidence/types"
 	"cosmossdk.io/x/feegrant"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	authzkeeper "github.com/cosmos/cosmos-sdk/x/authz/keeper"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
@@ -51,7 +50,7 @@ import (
 )
 
 func (keepers *TerraAppKeepers) GenerateKeys() {
-	keepers.keys = sdk.NewKVStoreKeys(
+	keepers.keys = storetypes.NewKVStoreKeys(
 		authtypes.StoreKey, banktypes.StoreKey, stakingtypes.StoreKey,
 		minttypes.StoreKey, distrtypes.StoreKey, slashingtypes.StoreKey,
 		govtypes.StoreKey, paramstypes.StoreKey, ibcexported.StoreKey,
@@ -63,8 +62,8 @@ func (keepers *TerraAppKeepers) GenerateKeys() {
 		alliancetypes.StoreKey, feesharetypes.StoreKey, icqtypes.StoreKey,
 	)
 
-	keepers.tkeys = sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
-	keepers.memKeys = sdk.NewMemoryStoreKeys(capabilitytypes.MemStoreKey)
+	keepers.tkeys = storetypes.NewTransientStoreKeys(paramstypes.TStoreKey)
+	keepers.memKeys = storetypes.NewMemoryStoreKeys(capabilitytypes.MemStoreKey)
 }
 
 func (keepers *TerraAppKeepers) GetKVStoreKey() map[string]*storetypes.KVStoreKey {

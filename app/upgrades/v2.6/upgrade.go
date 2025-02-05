@@ -1,6 +1,7 @@
 package v2_6
 
 import (
+	"context"
 	"time"
 
 	sdkerrors "cosmossdk.io/errors"
@@ -26,16 +27,17 @@ func CreateUpgradeHandler(
 	authKeeper authkeeper.AccountKeeper,
 	feesharekeeper feesharekeeper.Keeper,
 ) upgradetypes.UpgradeHandler {
-	return func(ctx sdk.Context, _ upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+	return func(ctx context.Context, _ upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
 		// feeshare module is a new module added in v2.6,
 		// we need to set the default params
-		err := feesharekeeper.SetParams(ctx, feesharetypes.DefaultParams())
+		err := feesharekeeper.SetParams(sdkCtx, feesharetypes.DefaultParams())
 		if err != nil {
 			return nil, err
 		}
 
 		// Increase the unbonding period for atlantic-2
-		err = increaseUnbondingPeriod(ctx, cdc, clientKeeper)
+		err = increaseUnbondingPeriod(sdkCtx, cdc, clientKeeper)
 		if err != nil {
 			return nil, err
 		}

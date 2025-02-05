@@ -5,9 +5,7 @@ import (
 	"time"
 
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
-	dbm "github.com/cometbft/cometbft-db"
 	"github.com/cometbft/cometbft/crypto/ed25519"
-	"github.com/cometbft/cometbft/libs/log"
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	"github.com/stretchr/testify/suite"
 	terra_app "github.com/terra-money/core/v2/app"
@@ -22,6 +20,10 @@ import (
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
+
+	"cosmossdk.io/log"
+	math "cosmossdk.io/math"
+	dbm "github.com/cosmos/cosmos-db"
 )
 
 type AppTestSuite struct {
@@ -44,8 +46,9 @@ func (s *AppTestSuite) Setup() {
 
 	db := dbm.NewMemDB()
 	s.DB = db
+	logger := log.NewLogger(os.Stderr)
 	s.App = terra_app.NewTerraApp(
-		log.NewTMLogger(log.NewSyncWriter(os.Stdout)),
+		logger,
 		db,
 		nil,
 		true,
@@ -54,11 +57,11 @@ func (s *AppTestSuite) Setup() {
 		0,
 		encCfg,
 		simtestutil.EmptyAppOptions{},
-		wasmtypes.DefaultWasmConfig(),
+		wasmtypes.DefaultNodeConfig(),
 	)
 	s.EncodingConfig = encCfg
 
-	s.Ctx = s.App.NewContext(true, tmproto.Header{Height: 1, Time: time.Now()})
+	s.Ctx = s.App.NewContextLegacy(true, tmproto.Header{Height: 1, Time: time.Now()})
 	s.QueryHelper = &baseapp.QueryServiceTestHelper{
 		GRPCQueryRouter: s.App.GRPCQueryRouter(),
 		Ctx:             s.Ctx,
@@ -75,10 +78,11 @@ func (s *AppTestSuite) Setup() {
 	err = s.App.Keepers.TokenFactoryKeeper.SetParams(s.Ctx, tokenfactorytypes.DefaultParams())
 	s.Require().NoError(err)
 
-	err = s.FundModule(authtypes.FeeCollectorName, sdk.NewCoins(sdk.NewCoin("uluna", sdk.NewInt(1000)), sdk.NewCoin("utoken", sdk.NewInt(500))))
+	err = s.FundModule(authtypes.FeeCollectorName, sdk.NewCoins(sdk.NewCoin("uluna", math.NewInt(1000)), sdk.NewCoin("utoken", math.NewInt(500))))
 	s.Require().NoError(err)
 
-	s.App.Keepers.DistrKeeper.SetFeePool(s.Ctx, distrtypes.InitialFeePool())
+	err = s.App.Keepers.DistrKeeper.FeePool.Set(s.Ctx, distrtypes.InitialFeePool())
+	s.Require().NoError(err)
 
 	s.TestAccs = s.CreateRandomAccounts(3)
 }

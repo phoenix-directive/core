@@ -5,11 +5,8 @@ import (
 
 	customwasmkeeper "github.com/terra-money/core/v2/x/wasm/keeper"
 
-	"github.com/cometbft/cometbft/libs/log"
-
 	storetypes "cosmossdk.io/store/types"
 	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	revtypes "github.com/terra-money/core/v2/x/feeshare/types"
 )
@@ -60,9 +57,4 @@ func NewKeeper(
 // GetAuthority returns the x/feeshare module's authority.
 func (k Keeper) GetAuthority() string {
 	return k.authority
-}
-
-// Logger returns a module-specific logger.
-func (k Keeper) Logger(ctx sdk.Context) log.Logger {
-	return ctx.Logger().With("module", fmt.Sprintf("x/%s", revtypes.ModuleName))
 }

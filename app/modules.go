@@ -8,6 +8,7 @@ import (
 	feegrantmodule "cosmossdk.io/x/feegrant/module"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	authsims "github.com/cosmos/cosmos-sdk/x/auth/simulation"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/cosmos-sdk/x/auth/vesting"
 	"github.com/cosmos/cosmos-sdk/x/authz"
@@ -124,22 +125,24 @@ var ModuleBasics = module.NewBasicManager(
 func appModules(app *TerraApp, encodingConfig terrappsparams.EncodingConfig, skipGenesisInvariants bool) []module.AppModule {
 	return []module.AppModule{
 		genutil.NewAppModule(
-			app.Keepers.AccountKeeper, app.Keepers.StakingKeeper, app.BaseApp.DeliverTx,
+			app.Keepers.AccountKeeper,
+			app.Keepers.StakingKeeper,
+			app,
 			encodingConfig.TxConfig,
 		),
 		auth.NewAppModule(app.appCodec, app.Keepers.AccountKeeper, nil, app.GetSubspace(authtypes.ModuleName)),
-		vesting.NewAppModule(app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.Keepers.DistrKeeper, app.Keepers.StakingKeeper),
+		vesting.NewAppModule(app.Keepers.AccountKeeper, app.Keepers.BankKeeper),
 		custombankmodule.NewAppModule(app.appCodec, app.Keepers.BankKeeper, app.Keepers.AccountKeeper, app.GetSubspace(banktypes.ModuleName)),
 		capability.NewAppModule(app.appCodec, *app.Keepers.CapabilityKeeper, false),
 		crisis.NewAppModule(&app.Keepers.CrisisKeeper, skipGenesisInvariants, app.GetSubspace(crisistypes.ModuleName)),
 		feegrantmodule.NewAppModule(app.appCodec, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.Keepers.FeeGrantKeeper, app.interfaceRegistry),
 		gov.NewAppModule(app.appCodec, &app.Keepers.GovKeeper, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.GetSubspace(govtypes.ModuleName)),
 		mint.NewAppModule(app.appCodec, app.Keepers.MintKeeper, app.Keepers.AccountKeeper, nil, app.GetSubspace(minttypes.ModuleName)),
-		slashing.NewAppModule(app.appCodec, app.Keepers.SlashingKeeper, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.Keepers.StakingKeeper, app.GetSubspace(slashingtypes.ModuleName)),
+		slashing.NewAppModule(app.appCodec, app.Keepers.SlashingKeeper, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.Keepers.StakingKeeper, app.GetSubspace(slashingtypes.ModuleName), app.interfaceRegistry),
 		distr.NewAppModule(app.appCodec, app.Keepers.DistrKeeper, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.Keepers.StakingKeeper, app.GetSubspace(distrtypes.ModuleName)),
 		staking.NewAppModule(app.appCodec, app.Keepers.StakingKeeper, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.GetSubspace(stakingtypes.ModuleName)),
 		consensus.NewAppModule(app.appCodec, app.Keepers.ConsensusParamsKeeper),
-		upgrade.NewAppModule(app.Keepers.UpgradeKeeper),
+		upgrade.NewAppModule(app.Keepers.UpgradeKeeper, app.Keepers.AccountKeeper.AddressCodec()),
 		evidence.NewAppModule(app.Keepers.EvidenceKeeper),
 		ibc.NewAppModule(app.Keepers.IBCKeeper),
 		params.NewAppModule(app.Keepers.ParamsKeeper),
@@ -153,7 +156,7 @@ func appModules(app *TerraApp, encodingConfig terrappsparams.EncodingConfig, ski
 		tokenfactory.NewAppModule(app.Keepers.TokenFactoryKeeper, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.GetSubspace(tokenfactorytypes.ModuleName)),
 		alliance.NewAppModule(app.appCodec, app.Keepers.AllianceKeeper, app.Keepers.StakingKeeper, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.interfaceRegistry, app.GetSubspace(alliancetypes.ModuleName)),
 		feeshare.NewAppModule(app.Keepers.FeeShareKeeper, app.Keepers.AccountKeeper, app.GetSubspace(feesharetypes.ModuleName)),
-		icq.NewAppModule(app.Keepers.ICQKeeper),
+		icq.NewAppModule(app.Keepers.ICQKeeper, app.GetSubspace(icqtypes.ModuleName)),
 	}
 }
 
@@ -255,4 +258,34 @@ var endBlockerOrder = []string{
 	feesharetypes.ModuleName,
 	consensusparamtypes.ModuleName,
 	icqtypes.ModuleName,
+}
+
+func (app *TerraApp) SimulationManager() *module.SimulationManager {
+	appCodec := app.appCodec
+	// create the simulation manager and define the order of the modules for deterministic simulations
+	sm := module.NewSimulationManager(
+		auth.NewAppModule(appCodec, app.Keepers.AccountKeeper, authsims.RandomGenesisAccounts, app.Keepers.GetSubspace(authtypes.ModuleName)),
+		authzmodule.NewAppModule(appCodec, app.Keepers.AuthzKeeper, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.interfaceRegistry),
+		custombankmodule.NewAppModule(appCodec, app.Keepers.BankKeeper, app.Keepers.AccountKeeper, app.Keepers.GetSubspace(banktypes.ModuleName)),
+		capability.NewAppModule(appCodec, *app.Keepers.CapabilityKeeper, false),
+		feegrantmodule.NewAppModule(appCodec, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.Keepers.FeeGrantKeeper, app.interfaceRegistry),
+		gov.NewAppModule(appCodec, &app.Keepers.GovKeeper, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.Keepers.GetSubspace(govtypes.ModuleName)),
+		mint.NewAppModule(appCodec, app.Keepers.MintKeeper, app.Keepers.AccountKeeper, nil, app.Keepers.GetSubspace(minttypes.ModuleName)),
+		staking.NewAppModule(appCodec, app.Keepers.StakingKeeper, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.Keepers.GetSubspace(stakingtypes.ModuleName)),
+		distr.NewAppModule(appCodec, app.Keepers.DistrKeeper, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.Keepers.StakingKeeper, app.Keepers.GetSubspace(distrtypes.ModuleName)),
+		slashing.NewAppModule(appCodec, app.Keepers.SlashingKeeper, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.Keepers.StakingKeeper, app.Keepers.GetSubspace(stakingtypes.ModuleName), app.interfaceRegistry),
+		params.NewAppModule(app.Keepers.ParamsKeeper),
+		evidence.NewAppModule(app.Keepers.EvidenceKeeper),
+		ibc.NewAppModule(app.Keepers.IBCKeeper),
+		ibctransfer.NewAppModule(app.Keepers.TransferKeeper),
+		ibcfee.NewAppModule(app.Keepers.IBCFeeKeeper),
+		ica.NewAppModule(&app.Keepers.ICAControllerKeeper, &app.Keepers.ICAHostKeeper),
+		packetforward.NewAppModule(&app.Keepers.PacketForwardKeeper, app.GetSubspace(packetforwardtypes.ModuleName)),
+		customwasmodule.NewAppModule(appCodec, &app.Keepers.WasmKeeper, app.Keepers.StakingKeeper, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.BaseApp.MsgServiceRouter(), app.Keepers.GetSubspace(wasmtypes.ModuleName)),
+		alliance.NewAppModule(appCodec, app.Keepers.AllianceKeeper, app.Keepers.StakingKeeper, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.interfaceRegistry, app.Keepers.GetSubspace(alliancetypes.ModuleName)),
+		feeshare.NewAppModule(app.Keepers.FeeShareKeeper, app.Keepers.AccountKeeper, app.GetSubspace(feesharetypes.ModuleName)),
+	)
+
+	sm.RegisterStoreDecoders()
+	return sm
 }

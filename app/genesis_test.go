@@ -2,14 +2,13 @@ package app_test
 
 import (
 	"encoding/json"
-	"os"
 	"testing"
 	"time"
 
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
 
 	abci "github.com/cometbft/cometbft/abci/types"
-	"github.com/cometbft/cometbft/libs/log"
+	abcitypes "github.com/cometbft/cometbft/abci/types"
 	"github.com/terra-money/core/v2/app/test_helpers"
 
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
@@ -34,9 +33,12 @@ import (
 	"github.com/cosmos/ibc-go/v8/modules/apps/transfer"
 	ibc "github.com/cosmos/ibc-go/v8/modules/core"
 
+	log "cosmossdk.io/log"
+	math "cosmossdk.io/math"
 	"cosmossdk.io/x/evidence"
 	feegrantmodule "cosmossdk.io/x/feegrant/module"
 	"cosmossdk.io/x/upgrade"
+
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/cosmos/cosmos-sdk/x/auth/vesting"
@@ -73,7 +75,7 @@ func TestAnteSuite(t *testing.T) {
 func (s *AppGenesisTestSuite) TestExportImportStateWithGenesisVestingAccs() {
 	// Setup the test suite
 	s.Setup()
-	bondAmt := sdk.NewInt(100_000_000_000_000_000)
+	bondAmt := math.NewInt(100_000_000_000_000_000)
 	coin := sdk.NewCoin("stake", bondAmt)
 
 	// Generate a random validators private/public key
@@ -93,9 +95,10 @@ func (s *AppGenesisTestSuite) TestExportImportStateWithGenesisVestingAccs() {
 	senderPrivKey1 := secp256k1.GenPrivKey()
 	acc := authtypes.NewBaseAccount(senderPrivKey.PubKey().Address().Bytes(), senderPrivKey.PubKey(), 0, 0)
 	acc1 := authtypes.NewBaseAccount(senderPrivKey1.PubKey().Address().Bytes(), senderPrivKey1.PubKey(), 0, 0)
-	vestingAcc := vestingtypes.NewBaseVestingAccount(acc, sdk.NewCoins(coin), time.Now().Unix())
-	vestingAcc1 := vestingtypes.NewBaseVestingAccount(acc1, sdk.NewCoins(coin), time.Now().Unix())
-
+	vestingAcc, err := vestingtypes.NewBaseVestingAccount(acc, sdk.NewCoins(coin), time.Now().Unix())
+	s.Require().NoError(err)
+	vestingAcc1, err := vestingtypes.NewBaseVestingAccount(acc1, sdk.NewCoins(coin), time.Now().Unix())
+	s.Require().NoError(err)
 	// Get genesis state and setup the chain
 	genesisState := app.NewDefaultGenesisState(s.EncodingConfig.Marshaler)
 	genesisState.SetDefaultTerraConfig(s.EncodingConfig.Marshaler)
@@ -117,21 +120,25 @@ func (s *AppGenesisTestSuite) TestExportImportStateWithGenesisVestingAccs() {
 			Jailed:            false,
 			Status:            stakingtypes.Bonded,
 			Tokens:            bondAmt,
-			DelegatorShares:   sdk.OneDec(),
+			DelegatorShares:   math.LegacyOneDec(),
 			Description:       stakingtypes.Description{},
 			UnbondingHeight:   int64(0),
 			UnbondingTime:     time.Unix(0, 0).UTC(),
-			Commission:        stakingtypes.NewCommission(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec()),
-			MinSelfDelegation: sdk.ZeroInt(),
+			Commission:        stakingtypes.NewCommission(math.LegacyZeroDec(), math.LegacyZeroDec(), math.LegacyZeroDec()),
+			MinSelfDelegation: math.ZeroInt(),
 		}
 		validators = append(validators, validator)
 	}
-	delegations = append(delegations, stakingtypes.NewDelegation(vestingAcc.GetAddress(), valSet.Validators[0].Address.Bytes(), sdk.OneDec()))
-	delegations = append(delegations, stakingtypes.NewDelegation(vestingAcc1.GetAddress(), valSet.Validators[1].Address.Bytes(), sdk.OneDec()))
+	val0, err := sdk.ValAddressFromHex(valSet.Validators[0].Address.String())
+	s.Require().NoError(err)
+	val1, err := sdk.ValAddressFromHex(valSet.Validators[1].Address.String())
+	s.Require().NoError(err)
+	delegations = append(delegations, stakingtypes.NewDelegation(vestingAcc.Address, val0.String(), math.LegacyOneDec()))
+	delegations = append(delegations, stakingtypes.NewDelegation(vestingAcc1.Address, val1.String(), math.LegacyOneDec()))
 
 	// set validators and delegations
 	stakingGenesis := stakingtypes.NewGenesisState(stakingtypes.DefaultParams(), validators, delegations)
-	genesisState[stakingtypes.ModuleName] = s.App.AppCodec().MustMarshalJSON(stakingGenesis)
+	genesisState[stakingtypes.ModuleName] = s.App.GetAppCodec().MustMarshalJSON(stakingGenesis)
 
 	// add bonded amount to bonded pool module account
 	balances := []banktypes.Balance{
@@ -139,25 +146,25 @@ func (s *AppGenesisTestSuite) TestExportImportStateWithGenesisVestingAccs() {
 		{Address: vestingAcc1.GetAddress().String(), Coins: sdk.NewCoins(coin)},
 		{
 			Address: authtypes.NewModuleAddress(stakingtypes.BondedPoolName).String(),
-			Coins:   sdk.Coins{sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(200_000_000_000_000_000))},
+			Coins:   sdk.Coins{sdk.NewCoin(sdk.DefaultBondDenom, math.NewInt(200_000_000_000_000_000))},
 		}}
 
 	// update total supply
 	bankGenesis := banktypes.NewGenesisState(
 		banktypes.DefaultGenesisState().Params,
 		balances,
-		sdk.NewCoins(sdk.NewCoin("stake", sdk.NewInt(400000000000000000))),
+		sdk.NewCoins(sdk.NewCoin("stake", math.NewInt(400000000000000000))),
 		[]banktypes.Metadata{},
 		[]banktypes.SendEnabled{},
 	)
-	genesisState[banktypes.ModuleName] = s.App.AppCodec().MustMarshalJSON(bankGenesis)
+	genesisState[banktypes.ModuleName] = s.App.GetAppCodec().MustMarshalJSON(bankGenesis)
 
 	stateBytes, err := json.MarshalIndent(genesisState, "", "  ")
 	s.Require().NoError(err)
 
 	// Initialize the chain
 	s.App.InitChain(
-		abci.RequestInitChain{
+		&abcitypes.RequestInitChain{
 			Validators:    []abci.ValidatorUpdate{},
 			AppStateBytes: stateBytes,
 		},
@@ -166,7 +173,7 @@ func (s *AppGenesisTestSuite) TestExportImportStateWithGenesisVestingAccs() {
 
 	// Making a new app object with the db, so that initchain hasn't been called
 	app2 := app.NewTerraApp(
-		log.NewTMLogger(log.NewSyncWriter(os.Stdout)),
+		log.NewNopLogger(),
 		s.DB,
 		nil,
 		true,
@@ -175,7 +182,8 @@ func (s *AppGenesisTestSuite) TestExportImportStateWithGenesisVestingAccs() {
 		0,
 		app.MakeEncodingConfig(),
 		simtestutil.EmptyAppOptions{},
-		wasmtypes.DefaultWasmConfig())
+		wasmtypes.DefaultNodeConfig(),
+	)
 	_, err = app2.ExportAppStateAndValidators(false, []string{}, []string{})
 	s.Require().NoError(err, "ExportAppStateAndValidators should not have an error")
 }
@@ -189,8 +197,8 @@ func (s *AppGenesisTestSuite) TestMigration() {
 	s.T().Cleanup(mockCtrl.Finish)
 	mockModule := mocktestutils.NewMockAppModuleWithAllExtensions(mockCtrl)
 	mockDefaultGenesis := json.RawMessage(`{"key": "value"}`)
-	mockModule.EXPECT().DefaultGenesis(gomock.Eq(s.App.AppCodec())).Times(1).Return(mockDefaultGenesis)
-	mockModule.EXPECT().InitGenesis(gomock.Eq(s.Ctx), gomock.Eq(s.App.AppCodec()), gomock.Eq(mockDefaultGenesis)).Times(1).Return(nil)
+	mockModule.EXPECT().DefaultGenesis(gomock.Eq(s.App.GetAppCodec())).Times(1).Return(mockDefaultGenesis)
+	mockModule.EXPECT().InitGenesis(gomock.Eq(s.Ctx), gomock.Eq(s.App.GetAppCodec()), gomock.Eq(mockDefaultGenesis)).Times(1).Return(nil)
 	mockModule.EXPECT().ConsensusVersion().Times(1).Return(uint64(0))
 
 	s.App.GetModuleManager().Modules["mock"] = mockModule

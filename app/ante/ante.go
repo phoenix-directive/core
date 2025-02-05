@@ -5,7 +5,7 @@ import (
 	ibckeeper "github.com/cosmos/ibc-go/v8/modules/core/keeper"
 	feesharekeeper "github.com/terra-money/core/v2/x/feeshare/keeper"
 
-	storetypes "cosmossdk.io/store/types"
+	corestoretypes "cosmossdk.io/core/store"
 	"github.com/cosmos/cosmos-sdk/client"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -21,12 +21,12 @@ import (
 type HandlerOptions struct {
 	ante.HandlerOptions
 
-	IBCkeeper         *ibckeeper.Keeper
-	FeeShareKeeper    feesharekeeper.Keeper
-	BankKeeper        bankKeeper.Keeper
-	TxCounterStoreKey storetypes.StoreKey
-	WasmConfig        wasmTypes.WasmConfig
-	TxConfig          client.TxConfig
+	IBCkeeper             *ibckeeper.Keeper
+	FeeShareKeeper        feesharekeeper.Keeper
+	BankKeeper            bankKeeper.Keeper
+	TXCounterStoreService corestoretypes.KVStoreService
+	NodeConfig            wasmTypes.NodeConfig
+	TxConfig              client.TxConfig
 }
 
 // NewAnteHandler returns an AnteHandler that checks and increments sequence
@@ -34,15 +34,15 @@ type HandlerOptions struct {
 // signer.
 func NewAnteHandler(options HandlerOptions) (sdk.AnteHandler, error) {
 	if options.AccountKeeper == nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrLogic, "account keeper is required for ante builder")
+		return nil, sdkerrors.ErrLogic.Wrap("account keeper is required for ante builder")
 	}
 
 	if options.BankKeeper == nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrLogic, "bank keeper is required for ante builder")
+		return nil, sdkerrors.ErrLogic.Wrap("bank keeper is required for ante builder")
 	}
 
 	if options.SignModeHandler == nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrLogic, "sign mode handler is required for ante builder")
+		return nil, sdkerrors.ErrLogic.Wrap("sign mode handler is required for ante builder")
 	}
 
 	sigGasConsumer := options.SigGasConsumer
@@ -52,8 +52,8 @@ func NewAnteHandler(options HandlerOptions) (sdk.AnteHandler, error) {
 
 	anteDecorators := []sdk.AnteDecorator{
 		ante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
-		wasmkeeper.NewLimitSimulationGasDecorator(options.WasmConfig.SimulationGasLimit),
-		wasmkeeper.NewCountTXDecorator(options.TxCounterStoreKey),
+		wasmkeeper.NewLimitSimulationGasDecorator(options.NodeConfig.SimulationGasLimit),
+		wasmkeeper.NewCountTXDecorator(options.TXCounterStoreService),
 		ante.NewExtensionOptionsDecorator(options.ExtensionOptionChecker),
 		ante.NewValidateBasicDecorator(),
 		ante.NewTxTimeoutHeightDecorator(),

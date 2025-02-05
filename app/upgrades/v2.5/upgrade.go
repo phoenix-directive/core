@@ -1,6 +1,7 @@
 package v2_5
 
 import (
+	"context"
 	"time"
 
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
@@ -33,29 +34,30 @@ func CreateUpgradeHandler(
 	icacontrollerKeeper icacontrollerkeeper.Keeper,
 	authKeeper authkeeper.AccountKeeper,
 ) upgradetypes.UpgradeHandler {
-	return func(ctx sdk.Context, _ upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+	return func(ctx context.Context, _ upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
 		// READ: https://github.com/cosmos/cosmos-sdk/blob/v0.47.4/UPGRADING.md#xconsensus
 		baseAppLegacySS := paramsKeeper.Subspace(baseapp.Paramspace).
 			WithKeyTable(paramstypes.ConsensusParamsKeyTable())
-		baseapp.MigrateParams(ctx, baseAppLegacySS, &consensusParamsKeeper)
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+		baseapp.MigrateParams(sdkCtx, baseAppLegacySS, consensusParamsKeeper.ParamsStore)
 
 		// READ: https://github.com/cosmos/ibc-go/blob/v7.2.0/docs/migrations/v6-to-v7.md#chains
 		// _, err := ibctmmigrations.PruneExpiredConsensusStates(ctx, cdc, clientKeeper)
 		// if err != nil {
 		// 	return nil, err
 		// }
-		err := increaseUnbondingPeriod(ctx, cdc, clientKeeper)
+		err := increaseUnbondingPeriod(sdkCtx, cdc, clientKeeper)
 		if err != nil {
 			return nil, err
 		}
 
 		// READ: https://github.com/cosmos/ibc-go/blob/v7.2.0/docs/migrations/v7-to-v7_1.md#chains
-		params := clientKeeper.GetParams(ctx)
+		params := clientKeeper.GetParams(sdkCtx)
 		params.AllowedClients = append(params.AllowedClients, ibcexported.Localhost)
-		clientKeeper.SetParams(ctx, params)
+		clientKeeper.SetParams(sdkCtx, params)
 
 		// READ: https://github.com/terra-money/core/issues/166
-		icacontrollerKeeper.SetParams(ctx, icacontrollertypes.DefaultParams())
+		icacontrollerKeeper.SetParams(sdkCtx, icacontrollertypes.DefaultParams())
 		vm, err := mm.RunMigrations(ctx, cfg, fromVM)
 		if err != nil {
 			return nil, err
