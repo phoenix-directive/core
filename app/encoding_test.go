@@ -5,8 +5,8 @@ import (
 	"github.com/terra-money/core/v2/app/test_helpers"
 
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
 	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
+	capabilitytypes "github.com/cosmos/ibc-go/modules/capability/types"
 )
 
 type AppCodecsTestSuite struct {

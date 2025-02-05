@@ -5,9 +5,9 @@ import (
 	tokenfactorykeeper "github.com/terra-money/core/v2/x/tokenfactory/keeper"
 	tokenfactorytypes "github.com/terra-money/core/v2/x/tokenfactory/types"
 
+	upgradetypes "cosmossdk.io/x/upgrade/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
-	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
 )
 
 func CreateUpgradeHandler(

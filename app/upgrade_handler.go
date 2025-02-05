@@ -1,9 +1,9 @@
 package app
 
 import (
-	ibchookstypes "github.com/cosmos/ibc-apps/modules/ibc-hooks/v7/types"
-	icacontrollertypes "github.com/cosmos/ibc-go/v7/modules/apps/27-interchain-accounts/controller/types"
-	ibcfeetypes "github.com/cosmos/ibc-go/v7/modules/apps/29-fee/types"
+	ibchookstypes "github.com/cosmos/ibc-apps/modules/ibc-hooks/v8/types"
+	icacontrollertypes "github.com/cosmos/ibc-go/v8/modules/apps/27-interchain-accounts/controller/types"
+	ibcfeetypes "github.com/cosmos/ibc-go/v8/modules/apps/29-fee/types"
 	alliancetypes "github.com/terra-money/alliance/x/alliance/types"
 	terraappconfig "github.com/terra-money/core/v2/app/config"
 	v2_10 "github.com/terra-money/core/v2/app/upgrades/v2.10"
@@ -22,12 +22,12 @@ import (
 	feesharetypes "github.com/terra-money/core/v2/x/feeshare/types"
 	tokenfactorytypes "github.com/terra-money/core/v2/x/tokenfactory/types"
 
-	storetypes "github.com/cosmos/cosmos-sdk/store/types"
+	storetypes "cosmossdk.io/store/types"
+	upgradetypes "cosmossdk.io/x/upgrade/types"
 	consensusparamtypes "github.com/cosmos/cosmos-sdk/x/consensus/types"
 	crisistypes "github.com/cosmos/cosmos-sdk/x/crisis/types"
-	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
 
-	icqtypes "github.com/cosmos/ibc-apps/modules/async-icq/v7/types"
+	icqtypes "github.com/cosmos/ibc-apps/modules/async-icq/v8/types"
 )
 
 // RegisterUpgradeHandlers returns upgrade handlers
