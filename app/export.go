@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 
@@ -11,6 +12,8 @@ import (
 	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	"github.com/cosmos/cosmos-sdk/x/staking"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+
+	storetypes "cosmossdk.io/store/types"
 )
 
 // ExportAppStateAndValidators exports the state of the application for a genesis
@@ -21,7 +24,7 @@ func (app *TerraApp) ExportAppStateAndValidators(
 	modulesToExport []string,
 ) (servertypes.ExportedApp, error) {
 	// as if they could withdraw from the start of the next block
-	ctx := app.NewContext(true, tmproto.Header{Height: app.LastBlockHeight()})
+	ctx := app.NewContextLegacy(true, tmproto.Header{Height: app.LastBlockHeight()})
 
 	// We export at last height + 1, because that's the height at which
 	// Tendermint will start InitChain.
@@ -31,7 +34,10 @@ func (app *TerraApp) ExportAppStateAndValidators(
 		app.prepForZeroHeightGenesis(ctx, jailAllowedAddrs)
 	}
 
-	genState := app.mm.ExportGenesis(ctx, app.appCodec)
+	genState, err := app.mm.ExportGenesis(ctx, app.appCodec)
+	if err != nil {
+		return servertypes.ExportedApp{}, err
+	}
 	appState, err := json.MarshalIndent(genState, "", "  ")
 	if err != nil {
 		return servertypes.ExportedApp{}, err
@@ -53,7 +59,8 @@ func (app *TerraApp) ExportAppStateAndValidators(
 // NOTE zero height genesis is a temporary feature which will be deprecated
 //
 //	in favour of export at a block height
-func (app *TerraApp) prepForZeroHeightGenesis(ctx sdk.Context, jailAllowedAddrs []string) {
+func (app *TerraApp) prepForZeroHeightGenesis(ctx context.Context, jailAllowedAddrs []string) {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	applyAllowedAddrs := false
 
 	// check if there is a allowed address list
@@ -72,13 +79,17 @@ func (app *TerraApp) prepForZeroHeightGenesis(ctx sdk.Context, jailAllowedAddrs 
 	}
 
 	/* Just to be safe, assert the invariants on current state. */
-	app.Keepers.CrisisKeeper.AssertInvariants(ctx)
+	app.Keepers.CrisisKeeper.AssertInvariants(sdkCtx)
 
 	/* Handle fee distribution state. */
 
 	// withdraw all validator commission
 	app.Keepers.StakingKeeper.IterateValidators(ctx, func(_ int64, val stakingtypes.ValidatorI) (stop bool) {
-		_, err := app.Keepers.DistrKeeper.WithdrawValidatorCommission(ctx, val.GetOperator())
+		operatorAddr, err := sdk.ValAddressFromBech32(val.GetOperator())
+		if err != nil {
+			panic(err)
+		}
+		_, err = app.Keepers.DistrKeeper.WithdrawValidatorCommission(ctx, operatorAddr)
 		if err != nil {
 			panic(err)
 		}
@@ -86,9 +97,20 @@ func (app *TerraApp) prepForZeroHeightGenesis(ctx sdk.Context, jailAllowedAddrs 
 	})
 
 	// withdraw all delegator rewards
-	dels := app.Keepers.StakingKeeper.GetAllDelegations(ctx)
+	dels, err := app.Keepers.StakingKeeper.GetAllDelegations(ctx)
+	if err != nil {
+		panic(err)
+	}
 	for _, delegation := range dels {
-		_, err := app.Keepers.DistrKeeper.WithdrawDelegationRewards(ctx, delegation.GetDelegatorAddr(), delegation.GetValidatorAddr())
+		delAddr, err := sdk.AccAddressFromBech32(delegation.GetDelegatorAddr())
+		if err != nil {
+			panic(err)
+		}
+		valAddr, err := sdk.ValAddressFromBech32(delegation.GetValidatorAddr())
+		if err != nil {
+			panic(err)
+		}
+		_, err = app.Keepers.DistrKeeper.WithdrawDelegationRewards(ctx, delAddr, valAddr)
 		if err != nil {
 			panic(err)
 		}
@@ -101,18 +123,28 @@ func (app *TerraApp) prepForZeroHeightGenesis(ctx sdk.Context, jailAllowedAddrs 
 	app.Keepers.DistrKeeper.DeleteAllValidatorHistoricalRewards(ctx)
 
 	// set context height to zero
-	height := ctx.BlockHeight()
-	ctx = ctx.WithBlockHeight(0)
+	height := sdkCtx.BlockHeight()
+	sdkCtx = sdkCtx.WithBlockHeight(0)
 
 	// reinitialize all validators
 	app.Keepers.StakingKeeper.IterateValidators(ctx, func(_ int64, val stakingtypes.ValidatorI) (stop bool) {
 		// donate any unwithdrawn outstanding reward fraction tokens to the community pool
-		scraps := app.Keepers.DistrKeeper.GetValidatorOutstandingRewardsCoins(ctx, val.GetOperator())
-		feePool := app.Keepers.DistrKeeper.GetFeePool(ctx)
+		valAddr, err := sdk.ValAddressFromBech32(val.GetOperator())
+		if err != nil {
+			panic(err)
+		}
+		scraps, err := app.Keepers.DistrKeeper.GetValidatorOutstandingRewardsCoins(ctx, valAddr)
+		if err != nil {
+			panic(err)
+		}
+		feePool, err := app.Keepers.DistrKeeper.FeePool.Get(ctx)
+		if err != nil {
+			panic(err)
+		}
 		feePool.CommunityPool = feePool.CommunityPool.Add(scraps...)
-		app.Keepers.DistrKeeper.SetFeePool(ctx, feePool)
+		app.Keepers.DistrKeeper.FeePool.Set(ctx, feePool)
 
-		err := app.Keepers.DistrKeeper.Hooks().AfterValidatorCreated(ctx, val.GetOperator())
+		err = app.Keepers.DistrKeeper.Hooks().AfterValidatorCreated(ctx, valAddr)
 		if err != nil {
 			panic(err)
 		}
@@ -121,18 +153,26 @@ func (app *TerraApp) prepForZeroHeightGenesis(ctx sdk.Context, jailAllowedAddrs 
 
 	// reinitialize all delegations
 	for _, del := range dels {
-		err := app.Keepers.DistrKeeper.Hooks().BeforeDelegationCreated(ctx, del.GetDelegatorAddr(), del.GetValidatorAddr())
+		delAddr, err := sdk.AccAddressFromBech32(del.GetDelegatorAddr())
 		if err != nil {
 			panic(err)
 		}
-		err = app.Keepers.DistrKeeper.Hooks().AfterDelegationModified(ctx, del.GetDelegatorAddr(), del.GetValidatorAddr())
+		valAddr, err := sdk.ValAddressFromBech32(del.GetValidatorAddr())
+		if err != nil {
+			panic(err)
+		}
+		err = app.Keepers.DistrKeeper.Hooks().BeforeDelegationCreated(ctx, delAddr, valAddr)
+		if err != nil {
+			panic(err)
+		}
+		err = app.Keepers.DistrKeeper.Hooks().AfterDelegationModified(ctx, delAddr, valAddr)
 		if err != nil {
 			panic(err)
 		}
 	}
 
 	// reset context height
-	ctx = ctx.WithBlockHeight(height)
+	sdkCtx = sdkCtx.WithBlockHeight(height)
 
 	/* Handle staking state. */
 
@@ -156,15 +196,15 @@ func (app *TerraApp) prepForZeroHeightGenesis(ctx sdk.Context, jailAllowedAddrs 
 
 	// Iterate through validators by power descending, reset bond heights, and
 	// update bond intra-tx counters.
-	store := ctx.KVStore(app.keys[stakingtypes.StoreKey])
-	iter := sdk.KVStoreReversePrefixIterator(store, stakingtypes.ValidatorsKey)
+	store := sdkCtx.KVStore(app.keys[stakingtypes.StoreKey])
+	iter := storetypes.KVStoreReversePrefixIterator(store, stakingtypes.ValidatorsKey)
 	counter := int16(0)
 
 	for ; iter.Valid(); iter.Next() {
 		addr := sdk.ValAddress(iter.Key()[1:])
-		validator, found := app.Keepers.StakingKeeper.GetValidator(ctx, addr)
-		if !found {
-			panic("expected validator, not found")
+		validator, err := app.Keepers.StakingKeeper.GetValidator(ctx, addr)
+		if err != nil {
+			panic(err)
 		}
 
 		validator.UnbondingHeight = 0
@@ -176,7 +216,7 @@ func (app *TerraApp) prepForZeroHeightGenesis(ctx sdk.Context, jailAllowedAddrs 
 		counter++
 	}
 
-	err := iter.Close()
+	err = iter.Close()
 	if err != nil {
 		panic(err)
 	}

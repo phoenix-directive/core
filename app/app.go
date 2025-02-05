@@ -1,126 +1,63 @@
 package app
 
 import (
+	"context"
 	"encoding/json"
 	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 
-	// #nosec G702
-	"github.com/prometheus/client_golang/prometheus"
-
-	authsims "github.com/cosmos/cosmos-sdk/x/auth/simulation"
-
-	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
-	"github.com/terra-money/core/v2/app/custom_queriers"
-	"github.com/terra-money/core/v2/app/keepers"
-	"github.com/terra-money/core/v2/app/post"
-	"github.com/terra-money/core/v2/app/rpc"
-
-	dbm "github.com/cometbft/cometbft-db"
-	abci "github.com/cometbft/cometbft/abci/types"
-	"github.com/cometbft/cometbft/libs/log"
-	tmos "github.com/cometbft/cometbft/libs/os"
-	"github.com/gorilla/mux"
-	"github.com/rakyll/statik/fs"
 	"github.com/spf13/cast"
 
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/codec/types"
-	"github.com/cosmos/cosmos-sdk/x/crisis"
+	"github.com/prometheus/client_golang/prometheus"
 
-	custombankmodule "github.com/terra-money/core/v2/x/bank"
-	customwasmodule "github.com/terra-money/core/v2/x/wasm"
+	abcitypes "github.com/cometbft/cometbft/abci/types"
+	tmos "github.com/cometbft/cometbft/libs/os"
 
+	"github.com/terra-money/core/v2/app/custom_queriers"
+	"github.com/terra-money/core/v2/app/keepers"
+
+	"github.com/cosmos/gogoproto/grpc"
+
+	"cosmossdk.io/log"
+	"cosmossdk.io/store/snapshots"
 	storetypes "cosmossdk.io/store/types"
-	"cosmossdk.io/x/evidence"
-	feegrantmodule "cosmossdk.io/x/feegrant/module"
+	dbm "github.com/cosmos/cosmos-db"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"github.com/cosmos/cosmos-sdk/baseapp"
-	"github.com/cosmos/cosmos-sdk/client/grpc/cmtservice"
-	nodeservice "github.com/cosmos/cosmos-sdk/client/grpc/node"
+	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/codec/types"
+	"github.com/cosmos/cosmos-sdk/runtime"
 	"github.com/cosmos/cosmos-sdk/server/api"
 	"github.com/cosmos/cosmos-sdk/server/config"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/version"
-	"github.com/cosmos/cosmos-sdk/x/auth"
 	cosmosante "github.com/cosmos/cosmos-sdk/x/auth/ante"
-	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	authzmodule "github.com/cosmos/cosmos-sdk/x/authz/module"
-	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	distr "github.com/cosmos/cosmos-sdk/x/distribution"
-	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
-	"github.com/cosmos/ibc-go/modules/capability"
-
-	"github.com/cosmos/cosmos-sdk/x/gov"
+	"github.com/cosmos/cosmos-sdk/x/crisis"
 	govclient "github.com/cosmos/cosmos-sdk/x/gov/client"
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
-
-	"github.com/cosmos/cosmos-sdk/x/mint"
-	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
-
-	"github.com/cosmos/cosmos-sdk/x/params"
 	paramsclient "github.com/cosmos/cosmos-sdk/x/params/client"
 	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
-	"github.com/cosmos/cosmos-sdk/x/slashing"
-	"github.com/cosmos/cosmos-sdk/x/staking"
+	allianceclient "github.com/terra-money/alliance/x/alliance/client"
 
-	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-
-	"github.com/cosmos/ibc-apps/middleware/packet-forward-middleware/v8/packetforward"
-	packetforwardtypes "github.com/cosmos/ibc-apps/middleware/packet-forward-middleware/v8/packetforward/types"
-
-	ica "github.com/cosmos/ibc-go/v8/modules/apps/27-interchain-accounts"
-	ibcfee "github.com/cosmos/ibc-go/v8/modules/apps/29-fee"
-	ibctransfer "github.com/cosmos/ibc-go/v8/modules/apps/transfer"
-	ibc "github.com/cosmos/ibc-go/v8/modules/core"
-
+	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 
-	"github.com/terra-money/alliance/x/alliance"
-	allianceclient "github.com/terra-money/alliance/x/alliance/client"
-	alliancetypes "github.com/terra-money/alliance/x/alliance/types"
-	feeshare "github.com/terra-money/core/v2/x/feeshare"
-	feesharetypes "github.com/terra-money/core/v2/x/feeshare/types"
-
-	tmjson "github.com/cometbft/cometbft/libs/json"
+	// unnamed import of statik for swagger UI support
+	_ "github.com/terra-money/core/v2/client/docs/statik"
 
 	"github.com/terra-money/core/v2/app/ante"
 	terraappconfig "github.com/terra-money/core/v2/app/config"
 	terraappparams "github.com/terra-money/core/v2/app/params"
-
-	// unnamed import of statik for swagger UI support
-	_ "github.com/terra-money/core/v2/client/docs/statik"
-)
-
-func getGovProposalHandlers() []govclient.ProposalHandler {
-	var govProposalHandlers []govclient.ProposalHandler
-
-	govProposalHandlers = append(govProposalHandlers,
-		paramsclient.ProposalHandler,
-		// upgradeclient.LegacyProposalHandler,
-		// upgradeclient.LegacyCancelProposalHandler,
-		// ibcclientclient.UpdateClientProposalHandler,
-		// ibcclientclient.UpgradeProposalHandler,
-		allianceclient.CreateAllianceProposalHandler,
-		allianceclient.UpdateAllianceProposalHandler,
-		allianceclient.DeleteAllianceProposalHandler,
-	)
-
-	return govProposalHandlers
-}
-
-var (
-	// DefaultNodeHome default home directories for the application daemon
-	DefaultNodeHome string
+	"github.com/terra-money/core/v2/app/post"
 )
 
 var (
 	_ servertypes.Application = (*TerraApp)(nil)
+	// DefaultNodeHome default home directories for the application daemon
+	DefaultNodeHome string
 )
 
 func init() {
@@ -158,18 +95,6 @@ type TerraApp struct {
 	configurator module.Configurator
 }
 
-func (app TerraApp) GetAppCodec() codec.Codec {
-	return app.appCodec
-}
-
-func (app TerraApp) GetConfigurator() module.Configurator {
-	return app.configurator
-}
-
-func (app TerraApp) GetModuleManager() *module.Manager {
-	return app.mm
-}
-
 // NewTerraApp returns a reference to an initialized Terra.
 func NewTerraApp(
 	logger log.Logger,
@@ -181,7 +106,7 @@ func NewTerraApp(
 	invCheckPeriod uint,
 	encodingConfig terraappparams.EncodingConfig,
 	appOpts servertypes.AppOptions,
-	wasmConfig wasmtypes.WasmConfig,
+	wasmConfig wasmtypes.NodeConfig,
 	baseAppOptions ...func(*baseapp.BaseApp),
 ) *TerraApp {
 	appCodec := encodingConfig.Marshaler
@@ -207,11 +132,15 @@ func NewTerraApp(
 		appOpts,
 		app.GetWasmOpts(appOpts),
 		homePath,
+		logger,
 	)
 	app.keys = app.Keepers.GetKVStoreKey()
 	app.tkeys = app.Keepers.GetTransientStoreKey()
 	app.memKeys = app.Keepers.GetMemoryStoreKey()
-	bApp.SetParamStore(&app.Keepers.ConsensusParamsKeeper)
+	bApp.SetParamStore(&app.Keepers.ConsensusParamsKeeper.ParamsStore)
+
+	// TODO: Verify if this is needed
+	baseAppOptions = append(baseAppOptions, baseapp.SetOptimisticExecution())
 
 	// upgrade handlers
 	app.configurator = module.NewConfigurator(app.appCodec, app.MsgServiceRouter(), app.GRPCQueryRouter())
@@ -248,6 +177,7 @@ func NewTerraApp(
 	// register upgrade
 	app.RegisterUpgradeHandlers()
 	app.RegisterUpgradeStores()
+	txCounterStoreService := runtime.NewKVStoreService(app.keys[wasmtypes.StoreKey])
 
 	anteHandler, err := ante.NewAnteHandler(
 		ante.HandlerOptions{
@@ -258,11 +188,11 @@ func NewTerraApp(
 				SignModeHandler: encodingConfig.TxConfig.SignModeHandler(),
 				SigGasConsumer:  cosmosante.DefaultSigVerificationGasConsumer,
 			},
-			BankKeeper:        app.Keepers.BankKeeper,
-			FeeShareKeeper:    app.Keepers.FeeShareKeeper,
-			IBCkeeper:         app.Keepers.IBCKeeper,
-			TxCounterStoreKey: app.keys[wasmtypes.StoreKey],
-			WasmConfig:        wasmConfig,
+			BankKeeper:            app.Keepers.BankKeeper,
+			FeeShareKeeper:        app.Keepers.FeeShareKeeper,
+			IBCkeeper:             app.Keepers.IBCKeeper,
+			TXCounterStoreService: txCounterStoreService,
+			NodeConfig:            wasmConfig,
 		},
 	)
 	if err != nil {
@@ -278,6 +208,7 @@ func NewTerraApp(
 
 	// initialize BaseApp
 	app.SetInitChainer(app.InitChainer)
+	app.SetPreBlocker(app.PreBlocker)
 	app.SetBeginBlocker(app.BeginBlocker)
 	app.SetAnteHandler(anteHandler)
 	app.SetPostHandler(postHandler)
@@ -301,29 +232,175 @@ func NewTerraApp(
 	return app
 }
 
-// Name returns the name of the App
-func (app *TerraApp) Name() string { return app.BaseApp.Name() }
-
-// BeginBlocker application updates every begin block
-func (app *TerraApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock {
-	return app.mm.BeginBlock(ctx, req)
+// ApplySnapshotChunk implements types.Application.
+// Subtle: this method shadows the method (*BaseApp).ApplySnapshotChunk of TerraApp.BaseApp.
+func (app *TerraApp) ApplySnapshotChunk(*abcitypes.RequestApplySnapshotChunk) (*abcitypes.ResponseApplySnapshotChunk, error) {
+	panic("unimplemented")
 }
 
-// EndBlocker application updates every end block
-func (app *TerraApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
-	return app.mm.EndBlock(ctx, req)
+// CheckTx implements types.Application.
+// Subtle: this method shadows the method (*BaseApp).CheckTx of TerraApp.BaseApp.
+func (app *TerraApp) CheckTx(*abcitypes.RequestCheckTx) (*abcitypes.ResponseCheckTx, error) {
+	panic("unimplemented")
+}
+
+// Close implements types.Application.
+// Subtle: this method shadows the method (*BaseApp).Close of TerraApp.BaseApp.
+func (app *TerraApp) Close() error {
+	panic("unimplemented")
+}
+
+// Commit implements types.Application.
+// Subtle: this method shadows the method (*BaseApp).Commit of TerraApp.BaseApp.
+func (app *TerraApp) Commit() (*abcitypes.ResponseCommit, error) {
+	panic("unimplemented")
+}
+
+// CommitMultiStore implements types.Application.
+// Subtle: this method shadows the method (*BaseApp).CommitMultiStore of TerraApp.BaseApp.
+func (app *TerraApp) CommitMultiStore() storetypes.CommitMultiStore {
+	panic("unimplemented")
+}
+
+// ExtendVote implements types.Application.
+// Subtle: this method shadows the method (*BaseApp).ExtendVote of TerraApp.BaseApp.
+func (app *TerraApp) ExtendVote(context.Context, *abcitypes.RequestExtendVote) (*abcitypes.ResponseExtendVote, error) {
+	panic("unimplemented")
+}
+
+// FinalizeBlock implements types.Application.
+// Subtle: this method shadows the method (*BaseApp).FinalizeBlock of TerraApp.BaseApp.
+func (app *TerraApp) FinalizeBlock(*abcitypes.RequestFinalizeBlock) (*abcitypes.ResponseFinalizeBlock, error) {
+	panic("unimplemented")
+}
+
+// Info implements types.Application.
+// Subtle: this method shadows the method (*BaseApp).Info of TerraApp.BaseApp.
+func (app *TerraApp) Info(*abcitypes.RequestInfo) (*abcitypes.ResponseInfo, error) {
+	panic("unimplemented")
+}
+
+// InitChain implements types.Application.
+// Subtle: this method shadows the method (*BaseApp).InitChain of TerraApp.BaseApp.
+func (app *TerraApp) InitChain(*abcitypes.RequestInitChain) (*abcitypes.ResponseInitChain, error) {
+	panic("unimplemented")
+}
+
+// ListSnapshots implements types.Application.
+// Subtle: this method shadows the method (*BaseApp).ListSnapshots of TerraApp.BaseApp.
+func (app *TerraApp) ListSnapshots(*abcitypes.RequestListSnapshots) (*abcitypes.ResponseListSnapshots, error) {
+	panic("unimplemented")
+}
+
+// LoadSnapshotChunk implements types.Application.
+// Subtle: this method shadows the method (*BaseApp).LoadSnapshotChunk of TerraApp.BaseApp.
+func (app *TerraApp) LoadSnapshotChunk(*abcitypes.RequestLoadSnapshotChunk) (*abcitypes.ResponseLoadSnapshotChunk, error) {
+	panic("unimplemented")
+}
+
+// OfferSnapshot implements types.Application.
+// Subtle: this method shadows the method (*BaseApp).OfferSnapshot of TerraApp.BaseApp.
+func (app *TerraApp) OfferSnapshot(*abcitypes.RequestOfferSnapshot) (*abcitypes.ResponseOfferSnapshot, error) {
+	panic("unimplemented")
+}
+
+// PrepareProposal implements types.Application.
+// Subtle: this method shadows the method (*BaseApp).PrepareProposal of TerraApp.BaseApp.
+func (app *TerraApp) PrepareProposal(*abcitypes.RequestPrepareProposal) (*abcitypes.ResponsePrepareProposal, error) {
+	panic("unimplemented")
+}
+
+// ProcessProposal implements types.Application.
+// Subtle: this method shadows the method (*BaseApp).ProcessProposal of TerraApp.BaseApp.
+func (app *TerraApp) ProcessProposal(*abcitypes.RequestProcessProposal) (*abcitypes.ResponseProcessProposal, error) {
+	panic("unimplemented")
+}
+
+// Query implements types.Application.
+// Subtle: this method shadows the method (*BaseApp).Query of TerraApp.BaseApp.
+func (app *TerraApp) Query(context.Context, *abcitypes.RequestQuery) (*abcitypes.ResponseQuery, error) {
+	panic("unimplemented")
+}
+
+// RegisterAPIRoutes implements types.Application.
+func (app *TerraApp) RegisterAPIRoutes(*api.Server, config.APIConfig) {
+	panic("unimplemented")
+}
+
+// RegisterGRPCServer implements types.Application.
+// Subtle: this method shadows the method (*BaseApp).RegisterGRPCServer of TerraApp.BaseApp.
+func (app *TerraApp) RegisterGRPCServer(grpc.Server) {
+	panic("unimplemented")
+}
+
+// RegisterNodeService implements types.Application.
+func (app *TerraApp) RegisterNodeService(client.Context, config.Config) {
+	panic("unimplemented")
+}
+
+// RegisterTendermintService implements types.Application.
+func (app *TerraApp) RegisterTendermintService(client.Context) {
+	panic("unimplemented")
+}
+
+// RegisterTxService implements types.Application.
+func (app *TerraApp) RegisterTxService(client.Context) {
+	panic("unimplemented")
+}
+
+// SnapshotManager implements types.Application.
+// Subtle: this method shadows the method (*BaseApp).SnapshotManager of TerraApp.BaseApp.
+func (app *TerraApp) SnapshotManager() *snapshots.Manager {
+	panic("unimplemented")
+}
+
+// VerifyVoteExtension implements types.Application.
+// Subtle: this method shadows the method (*BaseApp).VerifyVoteExtension of TerraApp.BaseApp.
+func (app *TerraApp) VerifyVoteExtension(*abcitypes.RequestVerifyVoteExtension) (*abcitypes.ResponseVerifyVoteExtension, error) {
+	panic("unimplemented")
+}
+
+// ----------------------------
+// Extended Functions
+// ----------------------------
+func (app *TerraApp) GetWasmOpts(appOpts servertypes.AppOptions) []wasmkeeper.Option {
+	var wasmOpts []wasmkeeper.Option
+	if cast.ToBool(appOpts.Get("telemetry.enabled")) {
+		wasmOpts = append(wasmOpts, wasmkeeper.WithVMCacheMetrics(prometheus.DefaultRegisterer))
+	}
+
+	wasmOpts = append(wasmOpts, custom_queriers.RegisterCustomPlugins(
+		&app.Keepers.BankKeeper.BaseKeeper,
+		&app.Keepers.TokenFactoryKeeper,
+		&app.Keepers.AllianceKeeper)...,
+	)
+
+	return wasmOpts
 }
 
 // InitChainer application update at chain initialization
-func (app *TerraApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
+func (app *TerraApp) InitChainer(ctx sdk.Context, req *abcitypes.RequestInitChain) (*abcitypes.ResponseInitChain, error) {
 	var genesisState GenesisState
-	if err := tmjson.Unmarshal(req.AppStateBytes, &genesisState); err != nil {
+	if err := json.Unmarshal(req.AppStateBytes, &genesisState); err != nil {
 		panic(err)
 	}
-	res := app.mm.InitGenesis(ctx, app.appCodec, genesisState)
 	app.Keepers.UpgradeKeeper.SetModuleVersionMap(ctx, app.mm.GetVersionMap())
+	return app.mm.InitGenesis(ctx, app.appCodec, genesisState)
+}
 
-	return res
+// PreBlocker application updates every pre block
+func (app *TerraApp) PreBlocker(ctx sdk.Context, _ *abcitypes.RequestFinalizeBlock) (*sdk.ResponsePreBlock, error) {
+	return app.mm.PreBlock(ctx)
+}
+
+// BeginBlocker application updates every begin block
+func (app *TerraApp) BeginBlocker(ctx sdk.Context) (sdk.BeginBlock, error) {
+	return app.mm.BeginBlock(ctx)
+}
+
+// EndBlocker application updates every end block
+func (app *TerraApp) EndBlocker(ctx sdk.Context) (sdk.EndBlock, error) {
+	return app.mm.EndBlock(ctx)
 }
 
 // LoadHeight loads a particular height
@@ -331,46 +408,17 @@ func (app *TerraApp) LoadHeight(height int64) error {
 	return app.LoadVersion(height)
 }
 
-// LegacyAmino returns SimApp's amino codec.
-//
-// NOTE: This is solely to be used for testing purposes as it may be desirable
-// for modules to register their own custom testing types.
-func (app *TerraApp) LegacyAmino() *codec.LegacyAmino {
-	return app.cdc
-}
+func getGovProposalHandlers() []govclient.ProposalHandler {
+	var govProposalHandlers []govclient.ProposalHandler
 
-// AppCodec returns Terra's app codec.
-//
-// NOTE: This is solely to be used for testing purposes as it may be desirable
-// for modules to register their own custom testing types.
-func (app *TerraApp) AppCodec() codec.Codec {
-	return app.appCodec
-}
+	govProposalHandlers = append(govProposalHandlers,
+		paramsclient.ProposalHandler,
+		allianceclient.CreateAllianceProposalHandler,
+		allianceclient.UpdateAllianceProposalHandler,
+		allianceclient.DeleteAllianceProposalHandler,
+	)
 
-// InterfaceRegistry returns Terra's InterfaceRegistry
-func (app *TerraApp) InterfaceRegistry() types.InterfaceRegistry {
-	return app.interfaceRegistry
-}
-
-// GetKey returns the KVStoreKey for the provided store key.
-//
-// NOTE: This is solely to be used for testing purposes.
-func (app *TerraApp) GetKey(storeKey string) *storetypes.KVStoreKey {
-	return app.keys[storeKey]
-}
-
-// GetTKey returns the TransientStoreKey for the provided store key.
-//
-// NOTE: This is solely to be used for testing purposes.
-func (app *TerraApp) GetTKey(storeKey string) *storetypes.TransientStoreKey {
-	return app.tkeys[storeKey]
-}
-
-// GetMemKey returns the MemStoreKey for the provided mem key.
-//
-// NOTE: This is solely used for testing purposes.
-func (app *TerraApp) GetMemKey(storeKey string) *storetypes.MemoryStoreKey {
-	return app.memKeys[storeKey]
+	return govProposalHandlers
 }
 
 // GetSubspace returns a param subspace for a given module name.
@@ -385,81 +433,16 @@ func (app *TerraApp) GetSubspace(moduleName string) paramstypes.Subspace {
 	return subspace
 }
 
-// RegisterAPIRoutes registers all application module routes with the provided
-// API server.
-func (app *TerraApp) RegisterAPIRoutes(apiSvr *api.Server, apiConfig config.APIConfig) {
-	clientCtx := apiSvr.ClientCtx
-
-	rpc.RegisterHealthcheckRoute(clientCtx, apiSvr.Router)
-	// Register new tx routes from grpc-gateway.
-	authtx.RegisterGRPCGatewayRoutes(clientCtx, apiSvr.GRPCGatewayRouter)
-	// Register new tendermint queries routes from grpc-gateway.
-	cmtservice.RegisterGRPCGatewayRoutes(clientCtx, apiSvr.GRPCGatewayRouter)
-	// Register node gRPC service for grpc-gateway.
-	nodeservice.RegisterGRPCGatewayRoutes(clientCtx, apiSvr.GRPCGatewayRouter)
-	// Register legacy and grpc-gateway routes for all modules.
-	ModuleBasics.RegisterGRPCGatewayRoutes(clientCtx, apiSvr.GRPCGatewayRouter)
-
-	// register swagger API from root so that other applications can override easily
-	if apiConfig.Swagger {
-		RegisterSwaggerAPI(apiSvr.Router)
-	}
+func (app TerraApp) GetConfigurator() module.Configurator {
+	return app.configurator
 }
 
-// RegisterTxService implements the Application.RegisterTxService method.
-func (app *TerraApp) RegisterTxService(clientCtx client.Context) {
-	authtx.RegisterTxService(app.BaseApp.GRPCQueryRouter(), clientCtx, app.BaseApp.Simulate, app.interfaceRegistry)
+func (app TerraApp) GetModuleManager() *module.Manager {
+	return app.mm
 }
 
-// RegisterTendermintService implements the Application.RegisterTendermintService method.
-func (app *TerraApp) RegisterTendermintService(clientCtx client.Context) {
-	cmtservice.RegisterTendermintService(
-		clientCtx,
-		app.BaseApp.GRPCQueryRouter(),
-		app.interfaceRegistry,
-		app.Query,
-	)
-}
-
-// RegisterSwaggerAPI registers swagger route with API Server
-func RegisterSwaggerAPI(rtr *mux.Router) {
-	statikFS, err := fs.New()
-	if err != nil {
-		panic(err)
-	}
-
-	staticServer := http.FileServer(statikFS)
-	rtr.PathPrefix("/swagger/").Handler(http.StripPrefix("/swagger/", staticServer))
-}
-
-func (app *TerraApp) SimulationManager() *module.SimulationManager {
-	appCodec := app.appCodec
-	// create the simulation manager and define the order of the modules for deterministic simulations
-	sm := module.NewSimulationManager(
-		auth.NewAppModule(appCodec, app.Keepers.AccountKeeper, authsims.RandomGenesisAccounts, app.Keepers.GetSubspace(authtypes.ModuleName)),
-		authzmodule.NewAppModule(appCodec, app.Keepers.AuthzKeeper, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.interfaceRegistry),
-		custombankmodule.NewAppModule(appCodec, app.Keepers.BankKeeper, app.Keepers.AccountKeeper, app.Keepers.GetSubspace(banktypes.ModuleName)),
-		capability.NewAppModule(appCodec, *app.Keepers.CapabilityKeeper, false),
-		feegrantmodule.NewAppModule(appCodec, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.Keepers.FeeGrantKeeper, app.interfaceRegistry),
-		gov.NewAppModule(appCodec, &app.Keepers.GovKeeper, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.Keepers.GetSubspace(govtypes.ModuleName)),
-		mint.NewAppModule(appCodec, app.Keepers.MintKeeper, app.Keepers.AccountKeeper, nil, app.Keepers.GetSubspace(minttypes.ModuleName)),
-		staking.NewAppModule(appCodec, app.Keepers.StakingKeeper, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.Keepers.GetSubspace(stakingtypes.ModuleName)),
-		distr.NewAppModule(appCodec, app.Keepers.DistrKeeper, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.Keepers.StakingKeeper, app.Keepers.GetSubspace(distrtypes.ModuleName)),
-		slashing.NewAppModule(appCodec, app.Keepers.SlashingKeeper, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.Keepers.StakingKeeper, app.Keepers.GetSubspace(stakingtypes.ModuleName)),
-		params.NewAppModule(app.Keepers.ParamsKeeper),
-		evidence.NewAppModule(app.Keepers.EvidenceKeeper),
-		ibc.NewAppModule(app.Keepers.IBCKeeper),
-		ibctransfer.NewAppModule(app.Keepers.TransferKeeper),
-		ibcfee.NewAppModule(app.Keepers.IBCFeeKeeper),
-		ica.NewAppModule(&app.Keepers.ICAControllerKeeper, &app.Keepers.ICAHostKeeper),
-		packetforward.NewAppModule(&app.Keepers.PacketForwardKeeper, app.GetSubspace(packetforwardtypes.ModuleName)),
-		customwasmodule.NewAppModule(appCodec, &app.Keepers.WasmKeeper, app.Keepers.StakingKeeper, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.BaseApp.MsgServiceRouter(), app.Keepers.GetSubspace(wasmtypes.ModuleName)),
-		alliance.NewAppModule(appCodec, app.Keepers.AllianceKeeper, app.Keepers.StakingKeeper, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.interfaceRegistry, app.Keepers.GetSubspace(alliancetypes.ModuleName)),
-		feeshare.NewAppModule(app.Keepers.FeeShareKeeper, app.Keepers.AccountKeeper, app.GetSubspace(feesharetypes.ModuleName)),
-	)
-
-	sm.RegisterStoreDecoders()
-	return sm
+func (app TerraApp) GetAppCodec() codec.Codec {
+	return app.appCodec
 }
 
 // DefaultGenesis returns a default genesis from the registered AppModuleBasic's.
@@ -467,21 +450,10 @@ func (a *TerraApp) DefaultGenesis() map[string]json.RawMessage {
 	return a.basicManager.DefaultGenesis(a.appCodec)
 }
 
-func (app *TerraApp) RegisterNodeService(clientCtx client.Context) {
-	nodeservice.RegisterNodeService(clientCtx, app.GRPCQueryRouter())
-}
-
-func (app *TerraApp) GetWasmOpts(appOpts servertypes.AppOptions) []wasmkeeper.Option {
-	var wasmOpts []wasmkeeper.Option
-	if cast.ToBool(appOpts.Get("telemetry.enabled")) {
-		wasmOpts = append(wasmOpts, wasmkeeper.WithVMCacheMetrics(prometheus.DefaultRegisterer))
-	}
-
-	wasmOpts = append(wasmOpts, custom_queriers.RegisterCustomPlugins(
-		&app.Keepers.BankKeeper.BaseKeeper,
-		&app.Keepers.TokenFactoryKeeper,
-		&app.Keepers.AllianceKeeper)...,
-	)
-
-	return wasmOpts
+// LegacyAmino returns SimApp's amino codec.
+//
+// NOTE: This is solely to be used for testing purposes as it may be desirable
+// for modules to register their own custom testing types.
+func (app *TerraApp) LegacyAmino() *codec.LegacyAmino {
+	return app.cdc
 }

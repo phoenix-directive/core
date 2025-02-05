@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"context"
 	"encoding/json"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -75,13 +76,13 @@ func (k Keeper) Hooks() Hooks {
 }
 
 // TrackBeforeSend calls the before send listener contract surpresses any errors
-func (h Hooks) TrackBeforeSend(ctx sdk.Context, from, to sdk.AccAddress, amount sdk.Coins) {
+func (h Hooks) TrackBeforeSend(ctx context.Context, from, to sdk.AccAddress, amount sdk.Coins) {
 	/* #nosec */
 	_ = h.k.callBeforeSendListener(ctx, from, to, amount, false)
 }
 
 // BlockBeforeSend calls the before send listener contract returns any errors
-func (h Hooks) BlockBeforeSend(ctx sdk.Context, from, to sdk.AccAddress, amount sdk.Coins) error {
+func (h Hooks) BlockBeforeSend(ctx context.Context, from, to sdk.AccAddress, amount sdk.Coins) error {
 	return h.k.callBeforeSendListener(ctx, from, to, amount, true)
 }
 

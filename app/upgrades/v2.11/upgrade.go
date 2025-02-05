@@ -1,6 +1,9 @@
 package v2_11
 
 import (
+	"context"
+
+	"cosmossdk.io/math"
 	ibctransferkeeper "github.com/cosmos/ibc-go/v8/modules/apps/transfer/keeper"
 	transfertypes "github.com/cosmos/ibc-go/v8/modules/apps/transfer/types"
 	custombankkeeper "github.com/terra-money/core/v2/x/bank/keeper"
@@ -21,8 +24,9 @@ func CreateUpgradeHandler(
 	bankKeeper custombankkeeper.Keeper,
 	transferKeeper ibctransferkeeper.Keeper,
 ) upgradetypes.UpgradeHandler {
-	return func(ctx sdk.Context, plan upgradetypes.Plan, vm module.VersionMap) (module.VersionMap, error) {
-		if ctx.ChainID() != "phoenix-1" {
+	return func(ctx context.Context, plan upgradetypes.Plan, vm module.VersionMap) (module.VersionMap, error) {
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
+		if sdkCtx.ChainID() != "phoenix-1" {
 			return mm.RunMigrations(ctx, cfg, vm)
 		}
 		// This slice is initialized with objects that describe the escrow account address and the coins that need to be minted to fix the discrepancy.
@@ -31,7 +35,7 @@ func CreateUpgradeHandler(
 		updates := []EscrowUpdate{
 			{
 				EscrowAddress: sdk.MustAccAddressFromBech32("terra1s308jav50mgct9x4f87u23w2tfe8q6qe45y7s4"),
-				Assets:        []sdk.Coin{sdk.NewCoin("ibc/815FC81EB6BD612206BD9A9909A02F7691D24A5B97CDFE2124B1BDCA9D4AB14C", sdk.NewInt(1000000000))},
+				Assets:        []sdk.Coin{sdk.NewCoin("ibc/815FC81EB6BD612206BD9A9909A02F7691D24A5B97CDFE2124B1BDCA9D4AB14C", math.NewInt(1000000000))},
 			},
 		}
 
@@ -48,9 +52,9 @@ func CreateUpgradeHandler(
 				}
 
 				// For ibc-go v7+ you will also need to update the transfer module's store for the total escrow amounts.
-				currentTotalEscrow := transferKeeper.GetTotalEscrowForDenom(ctx, coin.GetDenom())
+				currentTotalEscrow := transferKeeper.GetTotalEscrowForDenom(sdkCtx, coin.GetDenom())
 				newTotalEscrow := currentTotalEscrow.Add(coin)
-				transferKeeper.SetTotalEscrowForDenom(ctx, newTotalEscrow)
+				transferKeeper.SetTotalEscrowForDenom(sdkCtx, newTotalEscrow)
 			}
 		}
 

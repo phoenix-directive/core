@@ -1,6 +1,8 @@
 package v2_9
 
 import (
+	"context"
+
 	icqkeeper "github.com/cosmos/ibc-apps/modules/async-icq/v8/keeper"
 	icqtypes "github.com/cosmos/ibc-apps/modules/async-icq/v8/types"
 
@@ -16,10 +18,11 @@ func CreateUpgradeHandler(
 	cdc codec.Codec,
 	icqkeeper icqkeeper.Keeper,
 ) upgradetypes.UpgradeHandler {
-	return func(ctx sdk.Context, _ upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+	return func(ctx context.Context, _ upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
 		// Interchain Queries
 		icqParams := icqtypes.NewParams(true, nil)
-		icqkeeper.SetParams(ctx, icqParams)
+		icqkeeper.SetParams(sdkCtx, icqParams)
 
 		return mm.RunMigrations(ctx, cfg, fromVM)
 	}

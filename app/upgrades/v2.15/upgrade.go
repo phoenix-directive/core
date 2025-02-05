@@ -1,4 +1,4 @@
-package v2_4
+package v2_15
 
 import (
 	"context"
@@ -7,8 +7,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/module"
 )
 
-func CreateUpgradeHandler(mm *module.Manager,
-	cfg module.Configurator) upgradetypes.UpgradeHandler {
+func CreateUpgradeHandler(
+	mm *module.Manager,
+	cfg module.Configurator,
+) upgradetypes.UpgradeHandler {
 	return func(ctx context.Context, _ upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
 		return mm.RunMigrations(ctx, cfg, fromVM)
 	}

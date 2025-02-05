@@ -12,6 +12,7 @@ import (
 	"github.com/terra-money/core/v2/x/tokenfactory/bindings"
 	types2 "github.com/terra-money/core/v2/x/tokenfactory/bindings/types"
 
+	math "cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
@@ -94,7 +95,7 @@ func TestWithTfAndAllianceButRandomCall(t *testing.T) {
 	allianceQuerier := alliancebindings.CustomQuerier(&alliancebindings.QueryPlugin{})
 	querier := CustomQueriers(tfQuerier, allianceQuerier)
 
-	query := sdk.NewCoin("denom", sdk.NewInt(1))
+	query := sdk.NewCoin("denom", math.NewInt(1))
 	bz, err := json.Marshal(query)
 	require.NoError(t, err)
 

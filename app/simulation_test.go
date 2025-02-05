@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
-	dbm "github.com/cometbft/cometbft-db"
-	"github.com/cometbft/cometbft/libs/log"
+	log "cosmossdk.io/log"
+	dbm "github.com/cosmos/cosmos-db"
 
 	"github.com/stretchr/testify/require"
 	"github.com/terra-money/core/v2/app"
@@ -55,7 +55,7 @@ func BenchmarkSimulation(b *testing.B) {
 		0,
 		encoding,
 		simtestutil.EmptyAppOptions{},
-		wasmtypes.DefaultWasmConfig(),
+		wasmtypes.DefaultNodeConfig(),
 	)
 
 	// Run randomized simulations
@@ -63,12 +63,12 @@ func BenchmarkSimulation(b *testing.B) {
 		b,
 		os.Stdout,
 		terraApp.BaseApp,
-		simtestutil.AppStateFn(terraApp.AppCodec(), terraApp.SimulationManager(), terraApp.DefaultGenesis()),
+		simtestutil.AppStateFn(terraApp.GetAppCodec(), terraApp.SimulationManager(), terraApp.DefaultGenesis()),
 		simulationtypes.RandomAccounts,
-		simtestutil.SimulationOperations(terraApp, terraApp.AppCodec(), config),
+		simtestutil.SimulationOperations(terraApp, terraApp.GetAppCodec(), config),
 		keepers.ModuleAccountAddrs(),
 		config,
-		terraApp.AppCodec(),
+		terraApp.GetAppCodec(),
 	)
 
 	// export state and simParams before the simulation error is checked
@@ -86,7 +86,7 @@ func TestSimulationManager(t *testing.T) {
 	encoding := app.MakeEncodingConfig()
 
 	terraApp := app.NewTerraApp(
-		log.NewTMLogger(log.NewSyncWriter(os.Stdout)),
+		log.NewNopLogger(),
 		db,
 		nil,
 		true,
@@ -95,7 +95,7 @@ func TestSimulationManager(t *testing.T) {
 		0,
 		encoding,
 		simtestutil.EmptyAppOptions{},
-		wasmtypes.DefaultWasmConfig(),
+		wasmtypes.DefaultNodeConfig(),
 	)
 	sm := terraApp.SimulationManager()
 	require.NotNil(t, sm)

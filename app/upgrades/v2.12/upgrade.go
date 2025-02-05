@@ -1,6 +1,7 @@
 package v2_12
 
 import (
+	"context"
 	"fmt"
 
 	"cosmossdk.io/math"
@@ -30,7 +31,8 @@ func CreateUpgradeHandler(
 	cfg module.Configurator,
 	k keepers.TerraAppKeepers,
 ) upgradetypes.UpgradeHandler {
-	return func(ctx sdk.Context, plan upgradetypes.Plan, vm module.VersionMap) (module.VersionMap, error) {
+	return func(ctx context.Context, plan upgradetypes.Plan, vm module.VersionMap) (module.VersionMap, error) {
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
 
 		if err := updateValidatorsMinCommissionRate(ctx, k.StakingKeeper); err != nil {
 			return nil, err
@@ -41,7 +43,7 @@ func CreateUpgradeHandler(
 		var vestingContract sdk.AccAddress
 		var exploiter sdk.AccAddress
 
-		if ctx.ChainID() == "phoenix-1" {
+		if sdkCtx.ChainID() == "phoenix-1" {
 			addr = sdk.MustAccAddressFromBech32("terra1885dgdvn5u8sjfaefvr39arssaxgqmd29ht0aa")
 			multisigAddr = sdk.MustAccAddressFromBech32("terra159q4e7zl84hzkwy95kl29accklrxpth4zcuz8m87p4nvykpszrtq5qfgfe")
 			vestingContract = sdk.MustAccAddressFromBech32("terra19yxffalxzu88n5lnj40trehpryemqsz7pnnwxp8v73hxz0rl2u9q5qqwh4")
@@ -70,30 +72,41 @@ func CreateUpgradeHandler(
 	}
 }
 
-func updateValidatorsMinCommissionRate(ctx sdk.Context, sk *stakingkeeper.Keeper) error {
+func updateValidatorsMinCommissionRate(ctx context.Context, sk *stakingkeeper.Keeper) error {
 	// Update min commission rate for new / validators who are updating
-	stakingParams := sk.GetParams(ctx)
-	stakingParams.MinCommissionRate = sdk.MustNewDecFromStr("0.05")
+	stakingParams, err := sk.GetParams(ctx)
+	if err != nil {
+		return err
+	}
+	stakingParams.MinCommissionRate = math.LegacyMustNewDecFromStr("0.05")
 	if err := sk.SetParams(ctx, stakingParams); err != nil {
 		return err
 	}
 
 	// Update all validators to have a min commission rate of 5%
-	validators := sk.GetAllValidators(ctx)
+	validators, err := sk.GetAllValidators(ctx)
+	if err != nil {
+		return err
+	}
 	for _, validator := range validators {
 		update := false
-		if validator.Commission.MaxRate.LT(sdk.MustNewDecFromStr("0.05")) {
-			validator.Commission.MaxRate = sdk.MustNewDecFromStr("0.05")
+		if validator.Commission.MaxRate.LT(math.LegacyMustNewDecFromStr("0.05")) {
+			validator.Commission.MaxRate = math.LegacyMustNewDecFromStr("0.05")
 			update = true
 		}
-		if validator.Commission.Rate.LT(sdk.MustNewDecFromStr("0.05")) {
+		if validator.Commission.Rate.LT(math.LegacyMustNewDecFromStr("0.05")) {
 			// force update without checking the <24h restriction and the max update rate
-			validator.Commission.Rate = sdk.MustNewDecFromStr("0.05")
+			validator.Commission.Rate = math.LegacyMustNewDecFromStr("0.05")
 			update = true
 		}
 		if update {
-			validator.Commission.UpdateTime = ctx.BlockTime()
-			if err := sk.Hooks().BeforeValidatorModified(ctx, validator.GetOperator()); err != nil {
+			sdkCtx := sdk.UnwrapSDKContext(ctx)
+			validator.Commission.UpdateTime = sdkCtx.BlockTime()
+			operatorAddr, err := sdk.ValAddressFromBech32(validator.OperatorAddress)
+			if err != nil {
+				return err
+			}
+			if err := sk.Hooks().BeforeValidatorModified(ctx, operatorAddr); err != nil {
 				return err
 			}
 			sk.SetValidator(ctx, validator)
@@ -102,15 +115,18 @@ func updateValidatorsMinCommissionRate(ctx sdk.Context, sk *stakingkeeper.Keeper
 	return nil
 }
 
-func burnTokensFromAccount(ctx sdk.Context, sk *stakingkeeper.Keeper, bk bankkeeper.Keeper, dk distributionkeeper.Keeper, ak accountkeeper.AccountKeeper, addr sdk.AccAddress) error {
+func burnTokensFromAccount(ctx context.Context, sk *stakingkeeper.Keeper, bk bankkeeper.Keeper, dk distributionkeeper.Keeper, ak accountkeeper.AccountKeeper, addr sdk.AccAddress) error {
 	acc := ak.GetAccount(ctx, addr)
 	if acc == nil {
 		return fmt.Errorf("account %s not found", addr)
 	}
 	// Iterate delegations and unbond all shares
 	// burning the coins immediately
-	bondDenom := sk.GetParams(ctx).BondDenom
-	var err error
+	stakingParams, err := sk.GetParams(ctx)
+	if err != nil {
+		return err
+	}
+	bondDenom := stakingParams.BondDenom
 	sk.IterateDelegatorDelegations(ctx, addr, func(d stakingtypes.Delegation) (stop bool) {
 		var valAddr sdk.ValAddress
 		valAddr, err = sdk.ValAddressFromBech32(d.ValidatorAddress)
@@ -132,7 +148,10 @@ func burnTokensFromAccount(ctx sdk.Context, sk *stakingkeeper.Keeper, bk bankkee
 		}
 
 		// After unbonding, burn the coins depending on the validator's status
-		validator := sk.Validator(ctx, valAddr)
+		validator, err := sk.Validator(ctx, valAddr)
+		if err != nil {
+			return true
+		}
 		if validator.IsBonded() {
 			if err = bk.BurnCoins(ctx, stakingtypes.BondedPoolName, sdk.NewCoins(sdk.NewCoin(bondDenom, unbondedAmount))); err != nil {
 				return true

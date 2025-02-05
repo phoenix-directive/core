@@ -7,20 +7,24 @@ import (
 	"path/filepath"
 
 	ibctransfer "github.com/cosmos/ibc-go/v8/modules/apps/transfer"
-	ibcclient "github.com/cosmos/ibc-go/v8/modules/core/02-client"
-	ibcclienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	"github.com/spf13/cast"
 
+	log "cosmossdk.io/log"
 	storetypes "cosmossdk.io/store/types"
 	evidencekeeper "cosmossdk.io/x/evidence/keeper"
 	feegrantkeeper "cosmossdk.io/x/feegrant/keeper"
-	"cosmossdk.io/x/upgrade"
+
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/runtime"
 	"github.com/cosmos/cosmos-sdk/server"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+
+	authcodec "github.com/cosmos/cosmos-sdk/x/auth/codec"
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+
 	authzkeeper "github.com/cosmos/cosmos-sdk/x/authz/keeper"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	crisiskeeper "github.com/cosmos/cosmos-sdk/x/crisis/keeper"
@@ -28,15 +32,12 @@ import (
 	distrkeeper "github.com/cosmos/cosmos-sdk/x/distribution/keeper"
 	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	govtypesv1beta1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1beta1"
-	"github.com/cosmos/cosmos-sdk/x/params"
-	paramproposal "github.com/cosmos/cosmos-sdk/x/params/types/proposal"
 	capabilitykeeper "github.com/cosmos/ibc-go/modules/capability/keeper"
 	capabilitytypes "github.com/cosmos/ibc-go/modules/capability/types"
 
 	"cosmossdk.io/x/feegrant"
 	govkeeper "github.com/cosmos/cosmos-sdk/x/gov/keeper"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
-	govtypesv1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
 
 	mintkeeper "github.com/cosmos/cosmos-sdk/x/mint/keeper"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
@@ -180,11 +181,13 @@ func NewTerraAppKeepers(
 	appOpts servertypes.AppOptions,
 	wasmOpts []wasmkeeper.Option,
 	homePath string,
+	logger log.Logger,
 ) (keepers TerraAppKeepers) {
 	// Set keys KVStoreKey, TransientStoreKey, MemoryStoreKey
 	keepers.GenerateKeys()
 	keys := keepers.GetKVStoreKey()
 	tkeys := keepers.GetTransientStoreKey()
+	sdkConfig := sdk.GetConfig()
 
 	govModuleAddress := authtypes.NewModuleAddress(govtypes.ModuleName).String()
 
@@ -197,8 +200,9 @@ func NewTerraAppKeepers(
 
 	keepers.ConsensusParamsKeeper = consensusparamkeeper.NewKeeper(
 		appCodec,
-		keys[consensusparamtypes.StoreKey],
+		runtime.NewKVStoreService(keys[consensusparamtypes.StoreKey]),
 		govModuleAddress,
+		runtime.EventService{},
 	)
 
 	// Create capability keeper and grant capabilities for the modules
@@ -216,29 +220,33 @@ func NewTerraAppKeepers(
 
 	keepers.AccountKeeper = authkeeper.NewAccountKeeper(
 		appCodec,
-		keys[authtypes.StoreKey],
+		runtime.NewKVStoreService(keys[authtypes.StoreKey]),
 		authtypes.ProtoBaseAccount,
 		maccPerms,
+		authcodec.NewBech32Codec(terraappconfig.AccountAddressPrefix),
 		terraappconfig.AccountAddressPrefix,
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
 	keepers.BankKeeper = custombankkeeper.NewBaseKeeper(
 		appCodec,
-		keys[banktypes.StoreKey],
+		runtime.NewKVStoreService(keys[banktypes.StoreKey]),
 		keepers.AccountKeeper,
 		keepers.ModuleAccountAddrs(),
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+		nil,
 	)
 	keepers.StakingKeeper = stakingkeeper.NewKeeper(
 		appCodec,
-		keys[stakingtypes.StoreKey],
+		runtime.NewKVStoreService(keys[stakingtypes.StoreKey]),
 		keepers.AccountKeeper,
 		keepers.BankKeeper,
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+		authcodec.NewBech32Codec(sdkConfig.GetBech32ValidatorAddrPrefix()),
+		authcodec.NewBech32Codec(sdkConfig.GetBech32ConsensusAddrPrefix()),
 	)
 	keepers.MintKeeper = mintkeeper.NewKeeper(
 		appCodec,
-		keys[minttypes.StoreKey],
+		runtime.NewKVStoreService(keys[minttypes.StoreKey]),
 		keepers.StakingKeeper,
 		keepers.AccountKeeper,
 		keepers.BankKeeper,
@@ -247,7 +255,7 @@ func NewTerraAppKeepers(
 	)
 	keepers.DistrKeeper = distrkeeper.NewKeeper(
 		appCodec,
-		keys[distrtypes.StoreKey],
+		runtime.NewKVStoreService(keys[distrtypes.StoreKey]),
 		keepers.AccountKeeper,
 		keepers.BankKeeper,
 		keepers.StakingKeeper,
@@ -257,17 +265,18 @@ func NewTerraAppKeepers(
 	keepers.SlashingKeeper = slashingkeeper.NewKeeper(
 		appCodec,
 		cdc,
-		keys[slashingtypes.StoreKey],
+		runtime.NewKVStoreService(keys[slashingtypes.StoreKey]),
 		keepers.StakingKeeper,
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
 	keepers.CrisisKeeper = *crisiskeeper.NewKeeper(
 		appCodec,
-		keys[crisistypes.StoreKey],
+		runtime.NewKVStoreService(keys[crisistypes.StoreKey]),
 		cast.ToUint(appOpts.Get(server.FlagInvCheckPeriod)),
 		keepers.BankKeeper,
 		authtypes.FeeCollectorName,
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+		keepers.AccountKeeper.AddressCodec(),
 	)
 
 	// Create upgrade keeper with skip upgrade height and homepath from appOpts
@@ -277,7 +286,7 @@ func NewTerraAppKeepers(
 	}
 	keepers.UpgradeKeeper = upgradekeeper.NewKeeper(
 		skipUpgradeHeights,
-		keys[upgradetypes.StoreKey],
+		runtime.NewKVStoreService(keys[upgradetypes.StoreKey]),
 		appCodec,
 		homePath,
 		baseApp,
@@ -286,7 +295,7 @@ func NewTerraAppKeepers(
 
 	keepers.AllianceKeeper = alliancekeeper.NewKeeper(
 		appCodec,
-		keys[alliancetypes.StoreKey],
+		runtime.NewKVStoreService(keys[alliancetypes.StoreKey]),
 		keepers.AccountKeeper,
 		keepers.BankKeeper,
 		keepers.StakingKeeper,
@@ -320,14 +329,15 @@ func NewTerraAppKeepers(
 		keepers.StakingKeeper,
 		keepers.UpgradeKeeper,
 		keepers.ScopedIBCKeeper,
+		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
 	keepers.FeeGrantKeeper = feegrantkeeper.NewKeeper(
 		appCodec,
-		keys[feegrant.StoreKey],
+		runtime.NewKVStoreService(keys[feegrant.StoreKey]),
 		keepers.AccountKeeper,
 	)
 	keepers.AuthzKeeper = authzkeeper.NewKeeper(
-		keys[authzkeeper.StoreKey],
+		runtime.NewKVStoreService(keys[authzkeeper.StoreKey]),
 		appCodec,
 		baseApp.MsgServiceRouter(),
 		keepers.AccountKeeper,
@@ -337,9 +347,6 @@ func NewTerraAppKeepers(
 	govRouter := govtypesv1beta1.NewRouter()
 	govRouter.
 		AddRoute(govtypes.RouterKey, govtypesv1beta1.ProposalHandler).
-		AddRoute(paramproposal.RouterKey, params.NewParamChangeProposalHandler(keepers.ParamsKeeper)).
-		AddRoute(upgradetypes.RouterKey, upgrade.NewSoftwareUpgradeProposalHandler(keepers.UpgradeKeeper)).
-		AddRoute(ibcclienttypes.RouterKey, ibcclient.NewClientProposalHandler(keepers.IBCKeeper.ClientKeeper)).
 		AddRoute(alliancetypes.RouterKey, alliance.NewAllianceProposalHandler(keepers.AllianceKeeper))
 
 	// Configure the hooks keeper
@@ -360,10 +367,11 @@ func NewTerraAppKeepers(
 		keepers.GetSubspace(ibctransfertypes.ModuleName),
 		keepers.HooksICS4Wrapper,
 		keepers.IBCKeeper.ChannelKeeper,
-		&keepers.IBCKeeper.PortKeeper,
+		keepers.IBCKeeper.PortKeeper,
 		keepers.AccountKeeper,
 		keepers.BankKeeper,
 		keepers.ScopedTransferKeeper,
+		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
 	transferIBCModule := ibctransfer.NewIBCModule(keepers.TransferKeeper)
 
@@ -371,9 +379,8 @@ func NewTerraAppKeepers(
 	keepers.PacketForwardKeeper = *packetforwardkeeper.NewKeeper(
 		appCodec,
 		keepers.keys[packetforwardtypes.StoreKey],
-		keepers.TransferKeeper,
+		nil,
 		keepers.IBCKeeper.ChannelKeeper,
-		keepers.DistrKeeper,
 		keepers.BankKeeper,
 		keepers.IBCKeeper.ChannelKeeper,
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
@@ -383,24 +390,23 @@ func NewTerraAppKeepers(
 		&keepers.PacketForwardKeeper,
 		5,
 		packetforwardkeeper.DefaultForwardTransferPacketTimeoutTimestamp,
-		packetforwardkeeper.DefaultRefundTransferPacketTimeoutTimestamp,
 	)
 	keepers.ICQKeeper = icqkeeper.NewKeeper(
 		appCodec,
 		keepers.keys[icqtypes.StoreKey],
-		keepers.GetSubspace(icqtypes.ModuleName),
 		keepers.IBCKeeper.ChannelKeeper,
 		keepers.IBCKeeper.ChannelKeeper,
-		&keepers.IBCKeeper.PortKeeper,
+		keepers.IBCKeeper.PortKeeper,
 		keepers.ScopedICQKeeper,
 		baseApp.GRPCQueryRouter(),
+		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
 	keepers.IBCFeeKeeper = ibcfeekeeper.NewKeeper(
 		appCodec,
 		keys[ibcfeetypes.StoreKey],
 		keepers.IBCKeeper.ChannelKeeper,
 		keepers.IBCKeeper.ChannelKeeper,
-		&keepers.IBCKeeper.PortKeeper,
+		keepers.IBCKeeper.PortKeeper,
 		keepers.AccountKeeper,
 		keepers.BankKeeper,
 	)
@@ -409,19 +415,22 @@ func NewTerraAppKeepers(
 		keys[icacontrollertypes.StoreKey],
 		keepers.GetSubspace(icacontrollertypes.SubModuleName),
 		keepers.IBCFeeKeeper,
-		keepers.IBCKeeper.ChannelKeeper, &keepers.IBCKeeper.PortKeeper,
+		keepers.IBCKeeper.ChannelKeeper,
+		keepers.IBCKeeper.PortKeeper,
 		keepers.ScopedICAControllerKeeper,
 		baseApp.MsgServiceRouter(),
+		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
 	keepers.ICAHostKeeper = icahostkeeper.NewKeeper(
 		appCodec, keys[icahosttypes.StoreKey],
 		keepers.GetSubspace(icahosttypes.SubModuleName),
 		keepers.IBCFeeKeeper,
 		keepers.IBCKeeper.ChannelKeeper,
-		&keepers.IBCKeeper.PortKeeper,
+		keepers.IBCKeeper.PortKeeper,
 		keepers.AccountKeeper,
 		keepers.ScopedICAHostKeeper,
 		baseApp.MsgServiceRouter(),
+		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
 
 	var icaControllerStack porttypes.IBCModule
@@ -433,7 +442,12 @@ func NewTerraAppKeepers(
 
 	// Create evidence Keeper for to register the IBC light client misbehaviour evidence route
 	evidenceKeeper := evidencekeeper.NewKeeper(
-		appCodec, keys[evidencetypes.StoreKey], keepers.StakingKeeper, keepers.SlashingKeeper,
+		appCodec,
+		runtime.NewKVStoreService(keys[evidencetypes.StoreKey]),
+		keepers.StakingKeeper,
+		keepers.SlashingKeeper,
+		keepers.AccountKeeper.AddressCodec(),
+		runtime.ProvideCometInfoService(),
 	)
 	// If evidence needs to be handled for the app, set routes in router here and seal
 	keepers.EvidenceKeeper = *evidenceKeeper
@@ -442,7 +456,7 @@ func NewTerraAppKeepers(
 
 	// The last arguments can contain custom message handlers, and custom query handlers,
 	// if we want to allow any custom callbacks
-	wasmConfig, err := wasm.ReadWasmConfig(appOpts)
+	wasmConfig, err := wasm.ReadNodeConfig(appOpts)
 	if err != nil {
 		panic("error while reading wasm config: " + err.Error())
 	}
@@ -456,7 +470,7 @@ func NewTerraAppKeepers(
 		distrkeeper.NewQuerier(keepers.DistrKeeper),
 		keepers.IBCFeeKeeper, // ISC4 Wrapper: fee IBC middleware
 		keepers.IBCKeeper.ChannelKeeper,
-		&keepers.IBCKeeper.PortKeeper,
+		keepers.IBCKeeper.PortKeeper,
 		keepers.scopedWasmKeeper,
 		keepers.TransferKeeper,
 		baseApp.MsgServiceRouter(),
@@ -497,10 +511,11 @@ func NewTerraAppKeepers(
 
 	govKeeper := govkeeper.NewKeeper(
 		appCodec,
-		keys[govtypes.StoreKey],
+		runtime.NewKVStoreService(keys[govtypes.StoreKey]),
 		keepers.AccountKeeper,
 		keepers.BankKeeper,
 		keepers.StakingKeeper,
+		keepers.DistrKeeper,
 		baseApp.MsgServiceRouter(),
 		govtypes.Config{
 			MaxMetadataLen: 5100, // define the length of the governance proposal's title and description
@@ -548,21 +563,21 @@ func (app *TerraAppKeepers) initParamsKeeper(appCodec codec.BinaryCodec, legacyA
 	paramsKeeper := paramskeeper.NewKeeper(appCodec, legacyAmino, key, tkey)
 
 	// Cosmo SDK Base Modules
-	paramsKeeper.Subspace(authtypes.ModuleName).WithKeyTable(authtypes.ParamKeyTable())
-	paramsKeeper.Subspace(banktypes.ModuleName).WithKeyTable(banktypes.ParamKeyTable())
-	paramsKeeper.Subspace(stakingtypes.ModuleName).WithKeyTable(stakingtypes.ParamKeyTable())
-	paramsKeeper.Subspace(minttypes.ModuleName).WithKeyTable(minttypes.ParamKeyTable())
-	paramsKeeper.Subspace(distrtypes.ModuleName).WithKeyTable(distrtypes.ParamKeyTable())
-	paramsKeeper.Subspace(slashingtypes.ModuleName).WithKeyTable(slashingtypes.ParamKeyTable())
-	paramsKeeper.Subspace(govtypes.ModuleName).WithKeyTable(govtypesv1.ParamKeyTable())
-	paramsKeeper.Subspace(crisistypes.ModuleName).WithKeyTable(crisistypes.ParamKeyTable())
+	paramsKeeper.Subspace(authtypes.ModuleName)
+	paramsKeeper.Subspace(banktypes.ModuleName)
+	paramsKeeper.Subspace(stakingtypes.ModuleName)
+	paramsKeeper.Subspace(minttypes.ModuleName)
+	paramsKeeper.Subspace(distrtypes.ModuleName)
+	paramsKeeper.Subspace(slashingtypes.ModuleName)
+	paramsKeeper.Subspace(govtypes.ModuleName)
+	paramsKeeper.Subspace(crisistypes.ModuleName)
 
 	// IBC Modules
 	paramsKeeper.Subspace(ibctransfertypes.ModuleName)
 	paramsKeeper.Subspace(ibcexported.ModuleName)
 	paramsKeeper.Subspace(icahosttypes.SubModuleName)
 	paramsKeeper.Subspace(icacontrollertypes.SubModuleName)
-	paramsKeeper.Subspace(packetforwardtypes.ModuleName).WithKeyTable(packetforwardtypes.ParamKeyTable())
+	paramsKeeper.Subspace(packetforwardtypes.ModuleName)
 	paramsKeeper.Subspace(icqtypes.ModuleName)
 
 	// Custom Modules
