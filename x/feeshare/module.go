@@ -155,12 +155,12 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 }
 
 // BeginBlock executes all ABCI BeginBlock logic respective to the fees module.
-func (am AppModule) BeginBlock(_ sdk.Context, _ abci.RequestBeginBlock) {
+func (am AppModule) BeginBlock(_ sdk.Context) {
 }
 
 // EndBlock executes all ABCI EndBlock logic respective to the fee-share module. It
 // returns no validator updates.
-func (am AppModule) EndBlock(_ sdk.Context, _ abci.RequestEndBlock) []abci.ValidatorUpdate {
+func (am AppModule) EndBlock(_ sdk.Context) []abci.ValidatorUpdate {
 	return []abci.ValidatorUpdate{}
 }
 

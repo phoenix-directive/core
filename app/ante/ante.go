@@ -1,12 +1,12 @@
 package ante
 
 import (
-	ibcante "github.com/cosmos/ibc-go/v7/modules/core/ante"
-	ibckeeper "github.com/cosmos/ibc-go/v7/modules/core/keeper"
+	ibcante "github.com/cosmos/ibc-go/v8/modules/core/ante"
+	ibckeeper "github.com/cosmos/ibc-go/v8/modules/core/keeper"
 	feesharekeeper "github.com/terra-money/core/v2/x/feeshare/keeper"
 
+	storetypes "cosmossdk.io/store/types"
 	"github.com/cosmos/cosmos-sdk/client"
-	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/auth/ante"

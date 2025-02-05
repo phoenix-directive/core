@@ -3,8 +3,8 @@ package interchaintest
 import (
 	"fmt"
 
-	"github.com/strangelove-ventures/interchaintest/v7/chain/cosmos"
-	"github.com/strangelove-ventures/interchaintest/v7/ibc"
+	"github.com/strangelove-ventures/interchaintest/v8/chain/cosmos"
+	"github.com/strangelove-ventures/interchaintest/v8/ibc"
 
 	"github.com/cosmos/cosmos-sdk/types/module/testutil"
 )

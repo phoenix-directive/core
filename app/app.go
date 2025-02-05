@@ -28,18 +28,21 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec/types"
+	"github.com/cosmos/cosmos-sdk/x/crisis"
 
 	custombankmodule "github.com/terra-money/core/v2/x/bank"
 	customwasmodule "github.com/terra-money/core/v2/x/wasm"
 
+	storetypes "cosmossdk.io/store/types"
+	"cosmossdk.io/x/evidence"
+	feegrantmodule "cosmossdk.io/x/feegrant/module"
 	"github.com/cosmos/cosmos-sdk/baseapp"
+	"github.com/cosmos/cosmos-sdk/client/grpc/cmtservice"
 	nodeservice "github.com/cosmos/cosmos-sdk/client/grpc/node"
-	"github.com/cosmos/cosmos-sdk/client/grpc/tmservice"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/server/api"
 	"github.com/cosmos/cosmos-sdk/server/config"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
-	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/version"
@@ -49,12 +52,9 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	authzmodule "github.com/cosmos/cosmos-sdk/x/authz/module"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	"github.com/cosmos/cosmos-sdk/x/capability"
-	"github.com/cosmos/cosmos-sdk/x/crisis"
 	distr "github.com/cosmos/cosmos-sdk/x/distribution"
 	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
-	"github.com/cosmos/cosmos-sdk/x/evidence"
-	feegrantmodule "github.com/cosmos/cosmos-sdk/x/feegrant/module"
+	"github.com/cosmos/ibc-go/modules/capability"
 
 	"github.com/cosmos/cosmos-sdk/x/gov"
 	govclient "github.com/cosmos/cosmos-sdk/x/gov/client"
@@ -70,16 +70,14 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/staking"
 
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	upgradeclient "github.com/cosmos/cosmos-sdk/x/upgrade/client"
 
-	"github.com/cosmos/ibc-apps/middleware/packet-forward-middleware/v7/packetforward"
-	packetforwardtypes "github.com/cosmos/ibc-apps/middleware/packet-forward-middleware/v7/packetforward/types"
+	"github.com/cosmos/ibc-apps/middleware/packet-forward-middleware/v8/packetforward"
+	packetforwardtypes "github.com/cosmos/ibc-apps/middleware/packet-forward-middleware/v8/packetforward/types"
 
-	ica "github.com/cosmos/ibc-go/v7/modules/apps/27-interchain-accounts"
-	ibcfee "github.com/cosmos/ibc-go/v7/modules/apps/29-fee"
-	ibctransfer "github.com/cosmos/ibc-go/v7/modules/apps/transfer"
-	ibc "github.com/cosmos/ibc-go/v7/modules/core"
-	ibcclientclient "github.com/cosmos/ibc-go/v7/modules/core/02-client/client"
+	ica "github.com/cosmos/ibc-go/v8/modules/apps/27-interchain-accounts"
+	ibcfee "github.com/cosmos/ibc-go/v8/modules/apps/29-fee"
+	ibctransfer "github.com/cosmos/ibc-go/v8/modules/apps/transfer"
+	ibc "github.com/cosmos/ibc-go/v8/modules/core"
 
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 
@@ -104,10 +102,10 @@ func getGovProposalHandlers() []govclient.ProposalHandler {
 
 	govProposalHandlers = append(govProposalHandlers,
 		paramsclient.ProposalHandler,
-		upgradeclient.LegacyProposalHandler,
-		upgradeclient.LegacyCancelProposalHandler,
-		ibcclientclient.UpdateClientProposalHandler,
-		ibcclientclient.UpgradeProposalHandler,
+		// upgradeclient.LegacyProposalHandler,
+		// upgradeclient.LegacyCancelProposalHandler,
+		// ibcclientclient.UpdateClientProposalHandler,
+		// ibcclientclient.UpgradeProposalHandler,
 		allianceclient.CreateAllianceProposalHandler,
 		allianceclient.UpdateAllianceProposalHandler,
 		allianceclient.DeleteAllianceProposalHandler,
@@ -396,7 +394,7 @@ func (app *TerraApp) RegisterAPIRoutes(apiSvr *api.Server, apiConfig config.APIC
 	// Register new tx routes from grpc-gateway.
 	authtx.RegisterGRPCGatewayRoutes(clientCtx, apiSvr.GRPCGatewayRouter)
 	// Register new tendermint queries routes from grpc-gateway.
-	tmservice.RegisterGRPCGatewayRoutes(clientCtx, apiSvr.GRPCGatewayRouter)
+	cmtservice.RegisterGRPCGatewayRoutes(clientCtx, apiSvr.GRPCGatewayRouter)
 	// Register node gRPC service for grpc-gateway.
 	nodeservice.RegisterGRPCGatewayRoutes(clientCtx, apiSvr.GRPCGatewayRouter)
 	// Register legacy and grpc-gateway routes for all modules.
@@ -415,7 +413,7 @@ func (app *TerraApp) RegisterTxService(clientCtx client.Context) {
 
 // RegisterTendermintService implements the Application.RegisterTendermintService method.
 func (app *TerraApp) RegisterTendermintService(clientCtx client.Context) {
-	tmservice.RegisterTendermintService(
+	cmtservice.RegisterTendermintService(
 		clientCtx,
 		app.BaseApp.GRPCQueryRouter(),
 		app.interfaceRegistry,

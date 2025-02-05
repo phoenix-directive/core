@@ -1,13 +1,13 @@
 package v2_11
 
 import (
-	ibctransferkeeper "github.com/cosmos/ibc-go/v7/modules/apps/transfer/keeper"
-	transfertypes "github.com/cosmos/ibc-go/v7/modules/apps/transfer/types"
+	ibctransferkeeper "github.com/cosmos/ibc-go/v8/modules/apps/transfer/keeper"
+	transfertypes "github.com/cosmos/ibc-go/v8/modules/apps/transfer/types"
 	custombankkeeper "github.com/terra-money/core/v2/x/bank/keeper"
 
+	upgradetypes "cosmossdk.io/x/upgrade/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
-	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
 )
 
 type EscrowUpdate struct {
