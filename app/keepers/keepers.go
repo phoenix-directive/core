@@ -463,10 +463,20 @@ func NewTerraAppKeepers(
 	if err != nil {
 		panic("error while reading wasm config: " + err.Error())
 	}
-	availableCapabilities := "iterator,staking,stargate,cosmwasm_1_1,cosmwasm_1_2,cosmwasm_1_3,cosmwasm_1_4,cosmwasm_1_5,token_factory"
+	availableCapabilities := []string{
+		"iterator",
+		"staking",
+		"stargate",
+		"cosmwasm_1_1",
+		"cosmwasm_1_2",
+		"cosmwasm_1_3",
+		"cosmwasm_1_4",
+		"cosmwasm_1_5",
+		"token_factory",
+	}
 	keepers.WasmKeeper = customwasmkeeper.NewKeeper(
 		appCodec,
-		keys[wasmtypes.StoreKey],
+		runtime.NewKVStoreService(keys[wasmtypes.StoreKey]),
 		keepers.AccountKeeper,
 		keepers.BankKeeper,
 		keepers.StakingKeeper,
@@ -480,6 +490,7 @@ func NewTerraAppKeepers(
 		baseApp.GRPCQueryRouter(),
 		wasmDir,
 		wasmConfig,
+		wasmtypes.VMConfig{},
 		availableCapabilities,
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 		wasmOpts...,

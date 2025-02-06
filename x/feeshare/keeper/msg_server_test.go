@@ -7,6 +7,8 @@ import (
 
 	_ "embed"
 
+	math "cosmossdk.io/math"
+
 	"github.com/cosmos/cosmos-sdk/testutil/testdata"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
@@ -27,7 +29,7 @@ func (s *IntegrationTestSuite) StoreCode() {
 	rsp, err := s.App.MsgServiceRouter().Handler(msg)(s.Ctx, msg)
 	s.Require().NoError(err)
 	var result wasmtypes.MsgStoreCodeResponse
-	s.Require().NoError(s.App.AppCodec().Unmarshal(rsp.Data, &result))
+	s.Require().NoError(s.App.GetAppCodec().Unmarshal(rsp.Data, &result))
 	s.Require().Equal(uint64(1), result.CodeID)
 	expHash := sha256.Sum256(wasmContract)
 	s.Require().Equal(expHash[:], result.Checksum)
@@ -50,13 +52,13 @@ func (s *IntegrationTestSuite) InstantiateContract(sender string, admin string) 
 	msgInstantiate := wasmtypes.MsgInstantiateContractFixture(func(m *wasmtypes.MsgInstantiateContract) {
 		m.Sender = sender
 		m.Admin = admin
-		m.Funds = sdk.NewCoins(sdk.NewCoin(config.MicroLuna, sdk.NewInt(1)))
+		m.Funds = sdk.NewCoins(sdk.NewCoin(config.MicroLuna, math.NewInt(1)))
 		m.Msg = []byte(`{}`)
 	})
 	resp, err := s.App.MsgServiceRouter().Handler(msgInstantiate)(s.Ctx, msgInstantiate)
 	s.Require().NoError(err)
 	var result wasmtypes.MsgInstantiateContractResponse
-	s.Require().NoError(s.App.AppCodec().Unmarshal(resp.Data, &result))
+	s.Require().NoError(s.App.GetAppCodec().Unmarshal(resp.Data, &result))
 	contractInfo := s.App.Keepers.WasmKeeper.GetContractInfo(s.Ctx, sdk.MustAccAddressFromBech32(result.Address))
 	s.Require().Equal(contractInfo.CodeID, uint64(1))
 	s.Require().Equal(contractInfo.Admin, admin)

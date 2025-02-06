@@ -8,9 +8,9 @@ import (
 
 	"github.com/terra-money/core/v2/app/test_helpers"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"github.com/terra-money/core/v2/x/feeshare/types"
+
+	math "cosmossdk.io/math"
 )
 
 type GenesisTestSuite struct {
@@ -50,7 +50,7 @@ func (suite *GenesisTestSuite) TestFeeShareInitGenesis() {
 			types.GenesisState{
 				Params: types.Params{
 					EnableFeeShare:  true,
-					DeveloperShares: sdk.NewDecWithPrec(0, 2),
+					DeveloperShares: math.LegacyNewDecWithPrec(0, 2),
 					AllowedDenoms:   []string{"uluna"},
 				},
 			},
@@ -61,7 +61,7 @@ func (suite *GenesisTestSuite) TestFeeShareInitGenesis() {
 			types.GenesisState{
 				Params: types.Params{
 					EnableFeeShare:  true,
-					DeveloperShares: sdk.NewDecWithPrec(100, 2),
+					DeveloperShares: math.LegacyNewDecWithPrec(100, 2),
 					AllowedDenoms:   []string{"uluna"},
 				},
 			},
@@ -72,7 +72,7 @@ func (suite *GenesisTestSuite) TestFeeShareInitGenesis() {
 			types.GenesisState{
 				Params: types.Params{
 					EnableFeeShare:  true,
-					DeveloperShares: sdk.NewDecWithPrec(10, 2),
+					DeveloperShares: math.LegacyNewDecWithPrec(10, 2),
 					AllowedDenoms:   []string(nil),
 				},
 			},

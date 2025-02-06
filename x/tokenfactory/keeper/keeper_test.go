@@ -18,6 +18,8 @@ import (
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 
+	math "cosmossdk.io/math"
+
 	"github.com/terra-money/core/v2/app/test_helpers"
 	"github.com/terra-money/core/v2/x/tokenfactory/keeper"
 	"github.com/terra-money/core/v2/x/tokenfactory/types"
@@ -49,7 +51,7 @@ func (s *KeeperTestSuite) TestCreateModuleAccount() {
 	nextAccountNumber := s.App.Keepers.AccountKeeper.NextAccountNumber(s.Ctx)
 
 	// ensure module account was removed
-	s.Ctx = s.App.NewContext(true, tmproto.Header{Time: time.Now()})
+	s.Ctx = s.App.NewContextLegacy(true, tmproto.Header{Time: time.Now()})
 	tokenfactoryModuleAccount := s.App.Keepers.AccountKeeper.GetAccount(s.Ctx, s.App.Keepers.AccountKeeper.GetModuleAddress(types.ModuleName))
 	s.Require().Nil(tokenfactoryModuleAccount)
 
@@ -86,18 +88,18 @@ func (s *KeeperTestSuite) TestBurnFromModuleAccount() {
 
 	_, err = msgServer.Mint(s.Ctx, &types.MsgMint{
 		Sender:        s.TestAccs[0].String(),
-		Amount:        sdk.NewCoin(denom, sdk.NewInt(1000)),
+		Amount:        sdk.NewCoin(denom, math.NewInt(1000)),
 		MintToAddress: s.TestAccs[0].String(),
 	})
 	s.Require().NoError(err)
 
 	// Send to gov address
-	err = s.App.Keepers.BankKeeper.SendCoinsFromAccountToModule(s.Ctx, s.TestAccs[0], "gov", sdk.NewCoins(sdk.NewCoin(denom, sdk.NewInt(1000))))
+	err = s.App.Keepers.BankKeeper.SendCoinsFromAccountToModule(s.Ctx, s.TestAccs[0], "gov", sdk.NewCoins(sdk.NewCoin(denom, math.NewInt(1000))))
 	s.Require().NoError(err)
 
 	_, err = msgServer.Burn(s.Ctx, &types.MsgBurn{
 		Sender:          s.TestAccs[0].String(),
-		Amount:          sdk.NewCoin(denom, sdk.NewInt(1000)),
+		Amount:          sdk.NewCoin(denom, math.NewInt(1000)),
 		BurnFromAddress: govAddr.String(),
 	})
 

@@ -3,6 +3,8 @@ package keeper_test
 import (
 	"fmt"
 
+	math "cosmossdk.io/math"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 
@@ -14,7 +16,7 @@ func (s *KeeperTestSuite) TestMsgCreateDenom() {
 	var (
 		tokenFactoryKeeper = s.App.Keepers.TokenFactoryKeeper
 		bankKeeper         = s.App.Keepers.BankKeeper
-		denomCreationFee   = sdk.NewCoins(sdk.NewCoin("uluna", sdk.NewInt(1000000)))
+		denomCreationFee   = sdk.NewCoins(sdk.NewCoin("uluna", math.NewInt(1000000)))
 	)
 
 	// Set the denom creation fee. It is currently turned off in favor
@@ -75,9 +77,9 @@ func (s *KeeperTestSuite) TestMsgCreateDenom() {
 
 func (s *KeeperTestSuite) TestCreateDenom() {
 	var (
-		defaultDenomCreationFee = types.Params{DenomCreationFee: sdk.NewCoins(sdk.NewCoin(config.BondDenom, sdk.NewInt(50000000)))}
+		defaultDenomCreationFee = types.Params{DenomCreationFee: sdk.NewCoins(sdk.NewCoin(config.BondDenom, math.NewInt(50000000)))}
 		nilCreationFee          = types.Params{DenomCreationFee: nil}
-		largeCreationFee        = types.Params{DenomCreationFee: sdk.NewCoins(sdk.NewCoin(config.BondDenom, sdk.NewInt(5000000000)))}
+		largeCreationFee        = types.Params{DenomCreationFee: sdk.NewCoins(sdk.NewCoin(config.BondDenom, math.NewInt(5000000000)))}
 	)
 
 	for _, tc := range []struct {
@@ -147,7 +149,7 @@ func (s *KeeperTestSuite) TestCreateDenom() {
 			postCreateBalance := bankKeeper.GetAllBalances(s.Ctx, s.TestAccs[0])
 			if tc.valid {
 				s.Require().NoError(err)
-				s.Require().True(preCreateBalance.Sub(postCreateBalance[0]).IsEqual(denomCreationFee))
+				s.Require().True(preCreateBalance.Sub(postCreateBalance[0]).Equal(denomCreationFee))
 
 				// Make sure that the admin is set correctly
 				queryRes, err := s.queryClient.DenomAuthorityMetadata(s.Ctx.Context(), &types.QueryDenomAuthorityMetadataRequest{
@@ -170,7 +172,7 @@ func (s *KeeperTestSuite) TestCreateDenom() {
 			} else {
 				s.Require().Error(err)
 				// Ensure we don't charge if we expect an error
-				s.Require().True(preCreateBalance.IsEqual(postCreateBalance))
+				s.Require().True(preCreateBalance.Equal(postCreateBalance))
 			}
 		})
 	}

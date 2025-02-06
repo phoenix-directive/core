@@ -4,15 +4,15 @@ import (
 	fmt "fmt"
 	"testing"
 
+	math "cosmossdk.io/math"
 	"github.com/stretchr/testify/require"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 
 	"github.com/terra-money/core/v2/x/tokenfactory/types"
 
 	"github.com/cometbft/cometbft/crypto/ed25519"
-
-	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 )
 
 // TestMsgCreateDenom tests if valid/invalid create denom messages are properly validated/invalidated
@@ -90,7 +90,7 @@ func TestMsgMint(t *testing.T) {
 	createMsg := func(after func(msg types.MsgMint) types.MsgMint) types.MsgMint {
 		properMsg := *types.NewMsgMint(
 			addr1.String(),
-			sdk.NewCoin("bitcoin", sdk.NewInt(500000000)),
+			sdk.NewCoin("bitcoin", math.NewInt(500000000)),
 		)
 
 		return after(properMsg)
@@ -129,7 +129,7 @@ func TestMsgMint(t *testing.T) {
 		{
 			name: "zero amount",
 			msg: createMsg(func(msg types.MsgMint) types.MsgMint {
-				msg.Amount = sdk.NewCoin("bitcoin", sdk.ZeroInt())
+				msg.Amount = sdk.NewCoin("bitcoin", math.NewInt(0))
 				return msg
 			}),
 			expectPass: false,
@@ -137,7 +137,7 @@ func TestMsgMint(t *testing.T) {
 		{
 			name: "negative amount",
 			msg: createMsg(func(msg types.MsgMint) types.MsgMint {
-				msg.Amount.Amount = sdk.NewInt(-10000000)
+				msg.Amount.Amount = math.NewInt(-10000000)
 				return msg
 			}),
 			expectPass: false,
@@ -162,7 +162,7 @@ func TestMsgBurn(t *testing.T) {
 	// make a proper burn message
 	baseMsg := types.NewMsgBurn(
 		addr1.String(),
-		sdk.NewCoin("bitcoin", sdk.NewInt(500000000)),
+		sdk.NewCoin("bitcoin", math.NewInt(500000000)),
 	)
 
 	// validate burn message was created as intended
@@ -198,7 +198,7 @@ func TestMsgBurn(t *testing.T) {
 			name: "zero amount",
 			msg: func() *types.MsgBurn {
 				msg := baseMsg
-				msg.Amount.Amount = sdk.ZeroInt()
+				msg.Amount.Amount = math.NewInt(0)
 				return msg
 			},
 			expectPass: false,
@@ -207,7 +207,7 @@ func TestMsgBurn(t *testing.T) {
 			name: "negative amount",
 			msg: func() *types.MsgBurn {
 				msg := baseMsg
-				msg.Amount.Amount = sdk.NewInt(-10000000)
+				msg.Amount.Amount = math.NewInt(-10000000)
 				return msg
 			},
 			expectPass: false,

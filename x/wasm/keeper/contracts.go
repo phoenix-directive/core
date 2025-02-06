@@ -7,10 +7,10 @@ import (
 )
 
 func (k Keeper) GetExecutedContractAddresses(ctx sdk.Context) (contracts types.ExecutedContracts, found bool) {
-	store := ctx.KVStore(k.storeKey)
+	store := k.storeService.OpenKVStore(ctx)
 	contractAddressesKey := types.GetExecutedContractsKey()
-	b := store.Get(contractAddressesKey)
-	if b == nil {
+	b, err := store.Get(contractAddressesKey)
+	if err != nil || b == nil {
 		return contracts, false
 	}
 
@@ -19,15 +19,22 @@ func (k Keeper) GetExecutedContractAddresses(ctx sdk.Context) (contracts types.E
 }
 
 func (k Keeper) SetExecutedContractAddresses(ctx sdk.Context, contracts types.ExecutedContracts) error {
-	store := ctx.KVStore(k.storeKey)
+	store := k.storeService.OpenKVStore(ctx)
 	contractAddressesKey := types.GetExecutedContractsKey()
 	b := k.cdc.MustMarshal(&contracts)
-	store.Set(contractAddressesKey, b)
+	err := store.Set(contractAddressesKey, b)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
-func (k Keeper) DeleteExecutedContractAddresses(ctx sdk.Context) {
-	store := ctx.KVStore(k.storeKey)
+func (k Keeper) DeleteExecutedContractAddresses(ctx sdk.Context) error {
+	store := k.storeService.OpenKVStore(ctx)
 	contractAddressesKey := types.GetExecutedContractsKey()
-	store.Delete(contractAddressesKey)
+	err := store.Delete(contractAddressesKey)
+	if err != nil {
+		return err
+	}
+	return nil
 }

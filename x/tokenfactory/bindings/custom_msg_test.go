@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"testing"
 
+	math "cosmossdk.io/math"
+
 	"github.com/stretchr/testify/require"
 
 	"github.com/CosmWasm/wasmd/x/wasm/keeper"
@@ -252,7 +254,7 @@ func TestMintMsg(t *testing.T) {
 	require.NoError(t, err)
 	sunDenom := fmt.Sprintf("factory/%s/%s", reflect.String(), msg.CreateDenom.Subdenom)
 
-	amount, ok := sdk.NewIntFromString("808010808")
+	amount, ok := math.NewIntFromString("808010808")
 	require.True(t, ok)
 	msg = bindings.TokenMsg{MintTokens: &bindings.MintTokens{
 		Denom:         sunDenom,
@@ -384,7 +386,7 @@ func TestBurnMsg(t *testing.T) {
 	require.NoError(t, err)
 	sunDenom := fmt.Sprintf("factory/%s/%s", reflect.String(), msg.CreateDenom.Subdenom)
 
-	amount, ok := sdk.NewIntFromString("808010808")
+	amount, ok := math.NewIntFromString("808010808")
 	require.True(t, ok)
 
 	msg = bindings.TokenMsg{MintTokens: &bindings.MintTokens{

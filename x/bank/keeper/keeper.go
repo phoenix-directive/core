@@ -26,7 +26,7 @@ var _ bankkeeper.Keeper = Keeper{}
 
 func NewBaseKeeper(
 	cdc codec.BinaryCodec,
-	storeKey corestoretypes.KVStoreService,
+	storeService corestoretypes.KVStoreService,
 	ak accountkeeper.AccountKeeper,
 	blockedAddrs map[string]bool,
 	authority string,
@@ -35,7 +35,7 @@ func NewBaseKeeper(
 	keeper := Keeper{
 		Keeper: custombankkeeper.NewBaseKeeper(
 			cdc,
-			storeKey,
+			storeService,
 			ak,
 			blockedAddrs,
 			authority,

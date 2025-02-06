@@ -1,15 +1,16 @@
 package app
 
 import (
-	"context"
 	"encoding/json"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 
-	"github.com/spf13/cast"
-
+	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/rakyll/statik/fs"
+	"github.com/spf13/cast"
 
 	abcitypes "github.com/cometbft/cometbft/abci/types"
 	tmos "github.com/cometbft/cometbft/libs/os"
@@ -20,13 +21,14 @@ import (
 	"github.com/cosmos/gogoproto/grpc"
 
 	"cosmossdk.io/log"
-	"cosmossdk.io/store/snapshots"
 	storetypes "cosmossdk.io/store/types"
 	dbm "github.com/cosmos/cosmos-db"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/grpc/cmtservice"
+	nodeservice "github.com/cosmos/cosmos-sdk/client/grpc/node"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/runtime"
@@ -36,6 +38,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/version"
 	cosmosante "github.com/cosmos/cosmos-sdk/x/auth/ante"
+	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 	"github.com/cosmos/cosmos-sdk/x/crisis"
 	govclient "github.com/cosmos/cosmos-sdk/x/gov/client"
 	paramsclient "github.com/cosmos/cosmos-sdk/x/params/client"
@@ -52,6 +55,7 @@ import (
 	terraappconfig "github.com/terra-money/core/v2/app/config"
 	terraappparams "github.com/terra-money/core/v2/app/params"
 	"github.com/terra-money/core/v2/app/post"
+	"github.com/terra-money/core/v2/app/rpc"
 )
 
 var (
@@ -232,75 +236,15 @@ func NewTerraApp(
 	return app
 }
 
-// ApplySnapshotChunk implements types.Application.
-// Subtle: this method shadows the method (*BaseApp).ApplySnapshotChunk of TerraApp.BaseApp.
-func (app *TerraApp) ApplySnapshotChunk(*abcitypes.RequestApplySnapshotChunk) (*abcitypes.ResponseApplySnapshotChunk, error) {
-	panic("unimplemented")
-}
-
-// CheckTx implements types.Application.
-// Subtle: this method shadows the method (*BaseApp).CheckTx of TerraApp.BaseApp.
-func (app *TerraApp) CheckTx(*abcitypes.RequestCheckTx) (*abcitypes.ResponseCheckTx, error) {
-	panic("unimplemented")
-}
-
-// Close implements types.Application.
-// Subtle: this method shadows the method (*BaseApp).Close of TerraApp.BaseApp.
-func (app *TerraApp) Close() error {
-	panic("unimplemented")
-}
-
 // Commit implements types.Application.
 // Subtle: this method shadows the method (*BaseApp).Commit of TerraApp.BaseApp.
 func (app *TerraApp) Commit() (*abcitypes.ResponseCommit, error) {
 	panic("unimplemented")
 }
 
-// CommitMultiStore implements types.Application.
-// Subtle: this method shadows the method (*BaseApp).CommitMultiStore of TerraApp.BaseApp.
-func (app *TerraApp) CommitMultiStore() storetypes.CommitMultiStore {
-	panic("unimplemented")
-}
-
-// ExtendVote implements types.Application.
-// Subtle: this method shadows the method (*BaseApp).ExtendVote of TerraApp.BaseApp.
-func (app *TerraApp) ExtendVote(context.Context, *abcitypes.RequestExtendVote) (*abcitypes.ResponseExtendVote, error) {
-	panic("unimplemented")
-}
-
 // FinalizeBlock implements types.Application.
 // Subtle: this method shadows the method (*BaseApp).FinalizeBlock of TerraApp.BaseApp.
 func (app *TerraApp) FinalizeBlock(*abcitypes.RequestFinalizeBlock) (*abcitypes.ResponseFinalizeBlock, error) {
-	panic("unimplemented")
-}
-
-// Info implements types.Application.
-// Subtle: this method shadows the method (*BaseApp).Info of TerraApp.BaseApp.
-func (app *TerraApp) Info(*abcitypes.RequestInfo) (*abcitypes.ResponseInfo, error) {
-	panic("unimplemented")
-}
-
-// InitChain implements types.Application.
-// Subtle: this method shadows the method (*BaseApp).InitChain of TerraApp.BaseApp.
-func (app *TerraApp) InitChain(*abcitypes.RequestInitChain) (*abcitypes.ResponseInitChain, error) {
-	panic("unimplemented")
-}
-
-// ListSnapshots implements types.Application.
-// Subtle: this method shadows the method (*BaseApp).ListSnapshots of TerraApp.BaseApp.
-func (app *TerraApp) ListSnapshots(*abcitypes.RequestListSnapshots) (*abcitypes.ResponseListSnapshots, error) {
-	panic("unimplemented")
-}
-
-// LoadSnapshotChunk implements types.Application.
-// Subtle: this method shadows the method (*BaseApp).LoadSnapshotChunk of TerraApp.BaseApp.
-func (app *TerraApp) LoadSnapshotChunk(*abcitypes.RequestLoadSnapshotChunk) (*abcitypes.ResponseLoadSnapshotChunk, error) {
-	panic("unimplemented")
-}
-
-// OfferSnapshot implements types.Application.
-// Subtle: this method shadows the method (*BaseApp).OfferSnapshot of TerraApp.BaseApp.
-func (app *TerraApp) OfferSnapshot(*abcitypes.RequestOfferSnapshot) (*abcitypes.ResponseOfferSnapshot, error) {
 	panic("unimplemented")
 }
 
@@ -316,15 +260,35 @@ func (app *TerraApp) ProcessProposal(*abcitypes.RequestProcessProposal) (*abcity
 	panic("unimplemented")
 }
 
-// Query implements types.Application.
-// Subtle: this method shadows the method (*BaseApp).Query of TerraApp.BaseApp.
-func (app *TerraApp) Query(context.Context, *abcitypes.RequestQuery) (*abcitypes.ResponseQuery, error) {
-	panic("unimplemented")
+// RegisterAPIRoutes implements types.Application.
+func (app *TerraApp) RegisterAPIRoutes(apiSvr *api.Server, apiConfig config.APIConfig) {
+	clientCtx := apiSvr.ClientCtx
+
+	rpc.RegisterHealthcheckRoute(clientCtx, apiSvr.Router)
+	// Register new tx routes from grpc-gateway.
+	authtx.RegisterGRPCGatewayRoutes(clientCtx, apiSvr.GRPCGatewayRouter)
+	// Register new tendermint queries routes from grpc-gateway.
+	cmtservice.RegisterGRPCGatewayRoutes(clientCtx, apiSvr.GRPCGatewayRouter)
+	// Register node gRPC service for grpc-gateway.
+	nodeservice.RegisterGRPCGatewayRoutes(clientCtx, apiSvr.GRPCGatewayRouter)
+	// Register legacy and grpc-gateway routes for all modules.
+	ModuleBasics.RegisterGRPCGatewayRoutes(clientCtx, apiSvr.GRPCGatewayRouter)
+
+	// register swagger API from root so that other applications can override easily
+	if apiConfig.Swagger {
+		RegisterSwaggerAPI(apiSvr.Router)
+	}
 }
 
-// RegisterAPIRoutes implements types.Application.
-func (app *TerraApp) RegisterAPIRoutes(*api.Server, config.APIConfig) {
-	panic("unimplemented")
+// RegisterSwaggerAPI registers swagger route with API Server
+func RegisterSwaggerAPI(rtr *mux.Router) {
+	statikFS, err := fs.New()
+	if err != nil {
+		panic(err)
+	}
+
+	staticServer := http.FileServer(statikFS)
+	rtr.PathPrefix("/swagger/").Handler(http.StripPrefix("/swagger/", staticServer))
 }
 
 // RegisterGRPCServer implements types.Application.
@@ -334,30 +298,23 @@ func (app *TerraApp) RegisterGRPCServer(grpc.Server) {
 }
 
 // RegisterNodeService implements types.Application.
-func (app *TerraApp) RegisterNodeService(client.Context, config.Config) {
-	panic("unimplemented")
+func (app *TerraApp) RegisterNodeService(clientCtx client.Context, config config.Config) {
+	nodeservice.RegisterNodeService(clientCtx, app.GRPCQueryRouter(), config)
 }
 
 // RegisterTendermintService implements types.Application.
-func (app *TerraApp) RegisterTendermintService(client.Context) {
-	panic("unimplemented")
+func (app *TerraApp) RegisterTendermintService(clientCtx client.Context) {
+	cmtservice.RegisterTendermintService(
+		clientCtx,
+		app.BaseApp.GRPCQueryRouter(),
+		app.interfaceRegistry,
+		app.Query,
+	)
 }
 
 // RegisterTxService implements types.Application.
-func (app *TerraApp) RegisterTxService(client.Context) {
-	panic("unimplemented")
-}
-
-// SnapshotManager implements types.Application.
-// Subtle: this method shadows the method (*BaseApp).SnapshotManager of TerraApp.BaseApp.
-func (app *TerraApp) SnapshotManager() *snapshots.Manager {
-	panic("unimplemented")
-}
-
-// VerifyVoteExtension implements types.Application.
-// Subtle: this method shadows the method (*BaseApp).VerifyVoteExtension of TerraApp.BaseApp.
-func (app *TerraApp) VerifyVoteExtension(*abcitypes.RequestVerifyVoteExtension) (*abcitypes.ResponseVerifyVoteExtension, error) {
-	panic("unimplemented")
+func (app *TerraApp) RegisterTxService(clientCtx client.Context) {
+	authtx.RegisterTxService(app.BaseApp.GRPCQueryRouter(), clientCtx, app.BaseApp.Simulate, app.interfaceRegistry)
 }
 
 // ----------------------------

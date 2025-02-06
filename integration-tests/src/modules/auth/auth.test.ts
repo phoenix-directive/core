@@ -1,5 +1,5 @@
 import { getMnemonics, getLCDClient, blockInclusion } from "../../helpers";
-import { ContinuousVestingAccount, Coins, MnemonicKey, MsgCreateVestingAccount, Coin } from "@terra-money/feather.js";
+import { ContinuousVestingAccount, Coins, MnemonicKey, MsgCreateVestingAccount, Coin, MsgCreatePeriodicVestingAccount, Period } from "@terra-money/feather.js";
 import moment from "moment";
 
 describe("Auth Module (https://github.com/terra-money/cosmos-sdk/tree/release/v0.47.x/x/auth)", () => {
@@ -121,6 +121,78 @@ describe("Auth Module (https://github.com/terra-money/cosmos-sdk/tree/release/v0
                 }, {
                     "key": "amount",
                     "value": "100uluna"
+                }]
+            },
+            {
+                "type": "message",
+                "attributes": [{
+                    "key": "sender",
+                    "value": vestAccAddr1
+                }]
+            }])
+    });
+
+    test('Must create a periodic vesting account', async () => {
+        const randomAccountAddress = new MnemonicKey().accAddress("terra");
+        // Register a new vesting account
+        let tx = await wallet.createAndSignTx({
+            msgs: [new MsgCreatePeriodicVestingAccount (
+                vestAccAddr1,
+                randomAccountAddress,
+                moment().add(1, "minute").unix(),
+                [new Period(1000000, "1000000uluna"), new Period(1000000, "1000000uluna")]
+            )],
+            chainID: "test-1",
+        });
+
+        let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
+        await blockInclusion();
+        let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
+        expect(txResult.logs[0].events)
+            .toEqual([{
+                "type": "message",
+                "attributes": [{
+                    "key": "action",
+                    "value": "/cosmos.vesting.v1beta1.MsgCreatePeriodicVestingAccount"
+                }, {
+                    "key": "sender",
+                    "value": vestAccAddr1
+                }, {
+                    "key": "module",
+                    "value": "vesting"
+                }]
+            },
+            {
+                "type": "coin_spent",
+                "attributes": [{
+                    "key": "spender",
+                    "value": vestAccAddr1
+                }, {
+                    "key": "amount",
+                    "value": "2000000uluna"
+                }]
+            },
+            {
+                "type": "coin_received",
+                "attributes": [{
+                    "key": "receiver",
+                    "value": randomAccountAddress
+                }, {
+                    "key": "amount",
+                    "value": "2000000uluna"
+                }]
+            },
+            {
+                "type": "transfer",
+                "attributes": [{
+                    "key": "recipient",
+                    "value": randomAccountAddress
+                }, {
+                    "key": "sender",
+                    "value": vestAccAddr1
+                }, {
+                    "key": "amount",
+                    "value": "2000000uluna"
                 }]
             },
             {

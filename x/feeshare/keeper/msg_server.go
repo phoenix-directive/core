@@ -152,13 +152,6 @@ func (k Keeper) RegisterFeeShare(
 	k.SetDeployerMap(ctx, deployer, contract)
 	k.SetWithdrawerMap(ctx, withdrawer, contract)
 
-	k.Logger(ctx).Debug(
-		"registering contract for transaction fees",
-		"contract", msg.ContractAddress,
-		"deployer", msg.DeployerAddress,
-		"withdraw", msg.WithdrawerAddress,
-	)
-
 	ctx.EventManager().EmitEvents(
 		sdk.Events{
 			sdk.NewEvent(

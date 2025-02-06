@@ -2,6 +2,7 @@ package types
 
 import (
 	errorsmod "cosmossdk.io/errors"
+	math "cosmossdk.io/math"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -82,7 +83,7 @@ func (m MsgMint) ValidateBasic() error {
 		return errorsmod.Wrapf(sdkerrors.ErrInvalidAddress, "Invalid sender address (%s)", err)
 	}
 
-	if !m.Amount.IsValid() || m.Amount.Amount.Equal(sdk.ZeroInt()) {
+	if !m.Amount.IsValid() || m.Amount.Amount.Equal(math.ZeroInt()) {
 		return errorsmod.Wrap(sdkerrors.ErrInvalidCoins, m.Amount.String())
 	}
 
@@ -126,7 +127,7 @@ func (m MsgBurn) ValidateBasic() error {
 		return errorsmod.Wrapf(sdkerrors.ErrInvalidAddress, "Invalid sender address (%s)", err)
 	}
 
-	if !m.Amount.IsValid() || m.Amount.Amount.Equal(sdk.ZeroInt()) {
+	if !m.Amount.IsValid() || m.Amount.Amount.Equal(math.NewInt(0)) {
 		return errorsmod.Wrap(sdkerrors.ErrInvalidCoins, m.Amount.String())
 	}
 
@@ -327,7 +328,7 @@ func NewMsgUpdateParams(authority string, params Params) *MsgUpdateParams {
 
 func (msg *MsgUpdateParams) ValidateBasic() error {
 	if _, err := sdk.AccAddressFromBech32(msg.Authority); err != nil {
-		return sdkerrors.Wrap(err, "invalid authority address")
+		return errorsmod.Wrap(err, "invalid authority address")
 	}
 
 	if err := msg.Params.Validate(); err != nil {
