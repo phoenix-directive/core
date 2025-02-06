@@ -34,8 +34,8 @@ func NewKeeper(
 	router wasmkeeper.MessageRouter,
 	grpcQueryRouter wasmkeeper.GRPCQueryRouter,
 	homeDir string,
-	wasmConfig types.WasmConfig,
-	availableCapabilities string,
+	wasmConfig types.NodeConfig,
+	availableCapabilities []string,
 	authority string,
 	opts ...wasmkeeper.Option,
 ) Keeper {
@@ -56,12 +56,13 @@ func NewKeeper(
 		homeDir,
 		wasmConfig,
 		availableCapabilities,
+		[]string{availableCapabilities},
 		authority,
 		opts...,
 	)
 
 	return Keeper{
-		Keeper:   &keeper,
+		Keeper:   keeper,
 		storeKey: storeKey,
 		cdc:      cdc,
 	}

@@ -111,6 +111,14 @@ type AppModule struct {
 	legacySubspace exported.Subspace
 }
 
+// IsAppModule implements module.AppModule.
+func (am AppModule) IsAppModule() {
+}
+
+// IsOnePerModuleType implements module.AppModule.
+func (am AppModule) IsOnePerModuleType() {
+}
+
 func NewAppModule(
 	keeper keeper.Keeper,
 	accountKeeper types.AccountKeeper,
