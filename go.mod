@@ -5,40 +5,35 @@ go 1.23.6
 require (
 	cosmossdk.io/api v0.7.6 // indirect
 	cosmossdk.io/collections v0.4.0 // indirect
-	cosmossdk.io/core v0.11.1 // indirect
+	cosmossdk.io/core v0.11.1
 	cosmossdk.io/depinject v1.1.0 // indirect
 	cosmossdk.io/errors v1.0.1
-	cosmossdk.io/log v1.5.0 // indirect
+	cosmossdk.io/log v1.5.0
 	cosmossdk.io/math v1.5.0
 	cosmossdk.io/store v1.1.1
-	cosmossdk.io/x/tx v0.13.7 // indirect
-	cosmossdk.io/x/upgrade v0.1.4
-	cosmossdk.io/tools/rosetta v0.2.1
+	cosmossdk.io/tools/rosetta v0.2.1-0.20230613133644-0a778132a60f
 	cosmossdk.io/x/evidence v0.1.1
 	cosmossdk.io/x/feegrant v0.1.1
-	
-	github.com/CosmWasm/wasmvm v1.5.8
+	cosmossdk.io/x/tx v0.13.7
+	cosmossdk.io/x/upgrade v0.1.4
 	github.com/CosmWasm/wasmd v0.54.0
-	github.com/CosmWasm/wasmvm/v2 v2.2.1 // indirect
-
+	github.com/CosmWasm/wasmvm v1.5.8
+	github.com/CosmWasm/wasmvm/v2 v2.2.1
 	github.com/cometbft/cometbft v0.38.17
 	github.com/cometbft/cometbft-db v0.14.1
-
-	github.com/cosmos/cosmos-sdk v0.50.11
 	github.com/cosmos/btcutil v1.0.5 // indirect
-	github.com/cosmos/cosmos-db v1.1.1 // indirect
+	github.com/cosmos/cosmos-db v1.1.1
 	github.com/cosmos/cosmos-proto v1.0.0-beta.5
+	github.com/cosmos/cosmos-sdk v0.50.11
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/cosmos/gogogateway v1.2.0 // indirect
 	github.com/cosmos/gogoproto v1.7.0
-	github.com/cosmos/ledger-cosmos-go v0.13.3 // indirect
-
 	github.com/cosmos/ibc-apps/middleware/packet-forward-middleware/v8 v8.1.0
 	github.com/cosmos/ibc-apps/modules/async-icq/v8 v8.0.0
 	github.com/cosmos/ibc-apps/modules/ibc-hooks/v8 v8.0.0-20241122170711-64c5cd5a9fb9
 	github.com/cosmos/ibc-go/modules/capability v1.0.1
 	github.com/cosmos/ibc-go/v8 v8.5.2
-	
+	github.com/cosmos/ledger-cosmos-go v0.13.3 // indirect
 	github.com/golang/mock v1.6.0
 	github.com/golang/protobuf v1.5.4
 	github.com/gorilla/mux v1.8.1
@@ -58,9 +53,6 @@ require (
 )
 
 require (
-)
-
-require (
 	cloud.google.com/go v0.115.0 // indirect
 	cloud.google.com/go/auth v0.6.0 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.2 // indirect
@@ -77,7 +69,6 @@ require (
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/bgentry/speakeasy v0.1.1-0.20220910012023-760eaf8b6816 // indirect
 	github.com/bits-and-blooms/bitset v1.8.0 // indirect
-	github.com/btcsuite/btcd/btcec/v2 v2.3.4 // indirect
 	github.com/bytedance/sonic v1.12.3 // indirect
 	github.com/bytedance/sonic/loader v0.2.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
@@ -230,7 +221,9 @@ require (
 )
 
 replace (
-	github.com/cosmos/ledger-cosmos-go => github.com/terra-money/ledger-terra-go v0.11.2
-	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
+	github.com/99designs/keyring => github.com/cosmos/keyring v1.2.0
+	github.com/cosmos/ledger-cosmos-go => ./ledger-go
+	github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
 	github.com/syndtr/goleveldb => github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
+	github.com/terra-money/alliance => github.com/phoenix-directive/alliance v0.4.5-0.20250207023423-503c4ec63c00
 )
