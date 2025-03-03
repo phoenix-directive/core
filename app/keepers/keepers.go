@@ -373,7 +373,6 @@ func NewTerraAppKeepers(
 		keepers.keys[packetforwardtypes.StoreKey],
 		keepers.TransferKeeper,
 		keepers.IBCKeeper.ChannelKeeper,
-		keepers.DistrKeeper,
 		keepers.BankKeeper,
 		keepers.IBCKeeper.ChannelKeeper,
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
@@ -562,7 +561,7 @@ func (app *TerraAppKeepers) initParamsKeeper(appCodec codec.BinaryCodec, legacyA
 	paramsKeeper.Subspace(ibcexported.ModuleName)
 	paramsKeeper.Subspace(icahosttypes.SubModuleName)
 	paramsKeeper.Subspace(icacontrollertypes.SubModuleName)
-	paramsKeeper.Subspace(packetforwardtypes.ModuleName).WithKeyTable(packetforwardtypes.ParamKeyTable())
+	paramsKeeper.Subspace(packetforwardtypes.ModuleName)
 	paramsKeeper.Subspace(icqtypes.ModuleName)
 
 	// Custom Modules
