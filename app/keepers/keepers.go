@@ -422,6 +422,7 @@ func NewTerraAppKeepers(
 		keepers.ScopedICAHostKeeper,
 		baseApp.MsgServiceRouter(),
 	)
+	keepers.ICAHostKeeper.WithQueryRouter(baseApp.GRPCQueryRouter())
 
 	var icaControllerStack porttypes.IBCModule
 	icaControllerStack = icacontroller.NewIBCMiddleware(icaControllerStack, keepers.ICAControllerKeeper)

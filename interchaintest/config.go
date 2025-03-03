@@ -21,22 +21,21 @@ var (
 	IBCRelayerImage   = "ghcr.io/cosmos/relayer"
 	IBCRelayerVersion = "main"
 	config            = ibc.ChainConfig{
-		Type:                   "cosmos",
-		Name:                   "terra",
-		ChainID:                "phoenix-1",
-		Images:                 []ibc.DockerImage{Image},
-		Bin:                    "terrad",
-		Bech32Prefix:           "terra",
-		Denom:                  Denom,
-		CoinType:               "330",
-		GasPrices:              fmt.Sprintf("0%s", Denom),
-		GasAdjustment:          2.0,
-		TrustingPeriod:         "112h",
-		NoHostMount:            false,
-		ConfigFileOverrides:    nil,
-		EncodingConfig:         encoding(),
-		UsingNewGenesisCommand: true,
-		ModifyGenesis:          cosmos.ModifyGenesis(defaultGenesisKV),
+		Type:                "cosmos",
+		Name:                "terra",
+		ChainID:             "phoenix-1",
+		Images:              []ibc.DockerImage{Image},
+		Bin:                 "terrad",
+		Bech32Prefix:        "terra",
+		Denom:               Denom,
+		CoinType:            "330",
+		GasPrices:           fmt.Sprintf("0%s", Denom),
+		GasAdjustment:       2.0,
+		TrustingPeriod:      "112h",
+		NoHostMount:         false,
+		ConfigFileOverrides: nil,
+		EncodingConfig:      encoding(),
+		ModifyGenesis:       cosmos.ModifyGenesis(defaultGenesisKV),
 	}
 	// SDK v47 Genesis
 	defaultGenesisKV = []cosmos.GenesisKV{

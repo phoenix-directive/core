@@ -250,7 +250,7 @@ func (s *AppGenesisTestSuite) TestMigration() {
 		"interchainquery":        1,
 		"mint":                   2,
 		"mock":                   0,
-		"packetfowardmiddleware": 2,
+		"packetfowardmiddleware": 3,
 		"params":                 1,
 		"slashing":               3,
 		"staking":                4,
@@ -653,9 +653,6 @@ func (s *AppGenesisTestSuite) TestGenesis() {
 			}
 		},
 		"packetfowardmiddleware": {
-			"params": {
-				"fee_percentage": "0.000000000000000000"
-			},
 			"in_flight_packets": {}
 		},
 		"params": null,
@@ -723,5 +720,5 @@ func (s *AppGenesisTestSuite) TestGenesis() {
 			"sequences": []
 		}
 	}`
-	s.Require().JSONEq(string(jsonGenState), expectedState)
+	s.Require().JSONEq(expectedState, string(jsonGenState))
 }
