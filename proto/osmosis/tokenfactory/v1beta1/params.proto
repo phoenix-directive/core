@@ -8,6 +8,11 @@ import "cosmos/base/v1beta1/coin.proto";
 
 option go_package = "github.com/osmosis-labs/osmosis/v17/x/tokenfactory/types";
 
+message WhitelistedHook {
+  uint64 code_id = 1 [(gogoproto.customname) = "CodeID"];
+  string denom_creator = 2;
+}
+
 // Params defines the parameters for the tokenfactory module.
 message Params {
   // DenomCreationFee defines the fee to be charged on the creation of a new
@@ -27,4 +32,7 @@ message Params {
     (gogoproto.moretags) = "yaml:\"denom_creation_gas_consume\"",
     (gogoproto.nullable) = true
   ];
+
+  // whitelisted_hooks is the list of hooks which are allowed to be added and executed
+  repeated WhitelistedHook whitelisted_hooks = 3;
 }
