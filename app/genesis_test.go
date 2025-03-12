@@ -692,10 +692,10 @@ func (s *AppGenesisTestSuite) TestGenesis() {
 						"amount": "10000000"
 					}
 				],
-				"denom_creation_gas_consume": "1000000"
+				"denom_creation_gas_consume": "1000000",
+				"whitelisted_hooks": []
 			},
-			"factory_denoms": [],
-			"whitelisted_hooks": []
+			"factory_denoms": []
 		},
 		"transfer": {
 			"port_id": "transfer",

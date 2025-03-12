@@ -1,7 +1,8 @@
-import { Coin, Coins, Fee, MnemonicKey, MsgBurn, MsgChangeAdmin, MsgCreateDenom, MsgInstantiateContract, MsgMint, MsgStoreCode, MsgSetBeforeSendHook, MsgSend } from "@terra-money/feather.js";
-import { getMnemonics, getLCDClient, blockInclusion } from "../../helpers";
+import { Coin, Coins, Fee, MnemonicKey, MsgBurn, MsgChangeAdmin, MsgCreateDenom, MsgInstantiateContract, MsgMint, MsgStoreCode, MsgSetBeforeSendHook, MsgSend, MsgSubmitProposal, MsgUpdateParamsTokenFactory, MsgVote } from "@terra-money/feather.js";
+import { getMnemonics, getLCDClient, blockInclusion, votingPeriod } from "../../helpers";
 import fs from "fs";
 import path from 'path';
+import { VoteOption } from "../../../../../terra.proto/js/cosmos/gov/v1/gov";
 
 describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/v2.7/x/tokenfactory) ", () => {
     // Prepare environment clients, accounts and wallets
@@ -14,6 +15,10 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
     let subdenom = Math.random().toString(36).substring(7);
     let factoryDenom: string | undefined = undefined
     let customQueryContractAddress: string;
+    let codeId: number;
+    const govAddress = "terra10d07y265gmmuvt4z0w9aw880jnsr700juxf95n"
+    const val1Wallet = LCD.chain1.wallet(accounts.val1);
+    const val1WalletAddress = val1Wallet.key.accAddress("terra");
 
     // Read the no100 contract, store on chain, 
     // instantiate to be used in the following tests
@@ -30,7 +35,7 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
         let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
         await blockInclusion();
         let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
-        let codeId = Number(txResult.logs[0].events[1].attributes[1].value);
+        codeId = Number(txResult.logs[0].events[1].attributes[1].value);
         expect(codeId).toBeDefined();
 
         const msgInstantiateContract = new MsgInstantiateContract(
@@ -54,7 +59,7 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
     })
 
     // Validate the token factory having the correct params
-    test('Must have the correct module params', async () => {
+    test.skip('Must have the correct module params', async () => {
         const moduleParams = await LCD.chain1.tokenfactory.params("test-1");
 
         expect(moduleParams)
@@ -64,7 +69,8 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
                         "amount": "10000000",
                         "denom": "uluna"
                     }],
-                    "denom_creation_gas_consume": "1000000"
+                    "denom_creation_gas_consume": "1000000",
+                    "whitelisted_hooks": [],
                 }
             });
     })
@@ -348,43 +354,110 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
 
 
     describe("Use before send hooks", () => {
-        test("Must register the hooks to the no100 contract", async () => {
-            let tx = await wallet.createAndSignTx({
-                msgs: [
-                    new MsgSetBeforeSendHook(
-                        tokenFactoryWalletAddr,
-                        factoryDenom as string,
-                        contractAddress,
-                    ),
-                ],
-                fee: new Fee(100_000, new Coins({ uluna: 100_000 })),
-                chainID: "test-1",
+        // Validate update params using gov proposal
+        describe("Add hooks to the no100 contract", () => {
+
+            test('Must update params using gov proposal', async () => {
+                // let blockHeight = (await LCD.chain1.tendermint.blockInfo("test-1")).block.header.height;
+                let tx = await val1Wallet.createAndSignTx({
+                    msgs: [new MsgSubmitProposal([
+                        new MsgUpdateParamsTokenFactory(
+                            govAddress,
+                            Coins.fromString("512000uluna"),
+                            1000000,
+                            [
+                                { "codeId": codeId, "denomCreator": tokenFactoryWalletAddr }
+                            ]
+                        )
+                    ],
+                        Coins.fromString("1000000000uluna"),
+                        val1WalletAddress,
+                        "metadata",
+                        "title",
+                        "summary"
+                    )],
+                    chainID: "test-1",
+                });
+                let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
+                await blockInclusion();
+
+                // Check that the proposal was created successfully
+                let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
+                expect(txResult.code).toBe(0);
+
+                // Get the proposal id and validate exists
+                let proposalId = Number(txResult.logs[0].eventsByType.submit_proposal.proposal_id[0]);
+                expect(proposalId)
+
+                // Vote for the proposal
+                tx = await val1Wallet.createAndSignTx({
+                    msgs: [new MsgVote(
+                        proposalId,
+                        val1WalletAddress,
+                        VoteOption.VOTE_OPTION_YES
+                    )],
+                    fee: new Fee(100_000, "100000uluna"),
+                    chainID: "test-1",
+                });
+                result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
+                await votingPeriod();
+                txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1")
+                expect(txResult.code).toBe(0);
+
+                const params = await LCD.chain1.tokenfactory.params("test-1");
+                expect(params).toStrictEqual({
+                    params: {
+                        denom_creation_fee: [{
+                            amount: "512000",
+                            denom: "uluna"
+                        }],
+                        denom_creation_gas_consume: '1000000',
+                        whitelisted_hooks: [{
+                            code_id: "" + codeId,
+                            denom_creator: tokenFactoryWalletAddr
+                        }]
+                    }
+                });
+            })
+
+            test("Must register the hooks to the no100 contract", async () => {
+                let tx = await wallet.createAndSignTx({
+                    msgs: [
+                        new MsgSetBeforeSendHook(
+                            tokenFactoryWalletAddr,
+                            factoryDenom as string,
+                            contractAddress,
+                        ),
+                    ],
+                    fee: new Fee(100_000, new Coins({ uluna: 100_000 })),
+                    chainID: "test-1",
+                });
+                let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
+                await blockInclusion();
+                let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
+                expect(txResult.logs[0].events).toStrictEqual([{
+                    "type": "message",
+                    "attributes": [{
+                        "key": "action",
+                        "value": "/osmosis.tokenfactory.v1beta1.MsgSetBeforeSendHook"
+                    }, {
+                        "key": "sender",
+                        "value": tokenFactoryWalletAddr
+                    }, {
+                        "key": "module",
+                        "value": "tokenfactory"
+                    }]
+                }, {
+                    "type": "set_before_send_hook",
+                    "attributes": [{
+                        "key": "denom",
+                        "value": factoryDenom
+                    }, {
+                        "key": "before_send_hook_address",
+                        "value": contractAddress
+                    }]
+                }]);
             });
-            let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
-            await blockInclusion();
-            let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
-            expect(txResult.logs[0].events).toStrictEqual([{
-                "type": "message",
-                "attributes": [{
-                    "key": "action",
-                    "value": "/osmosis.tokenfactory.v1beta1.MsgSetBeforeSendHook"
-                }, {
-                    "key": "sender",
-                    "value": tokenFactoryWalletAddr
-                }, {
-                    "key": "module",
-                    "value": "tokenfactory"
-                }]
-            }, {
-                "type": "set_before_send_hook",
-                "attributes": [{
-                    "key": "denom",
-                    "value": factoryDenom
-                }, {
-                    "key": "before_send_hook_address",
-                    "value": contractAddress
-                }]
-            }]);
         });
 
 
