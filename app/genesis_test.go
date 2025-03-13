@@ -254,7 +254,7 @@ func (s *AppGenesisTestSuite) TestMigration() {
 		"params":                 1,
 		"slashing":               3,
 		"staking":                4,
-		"tokenfactory":           3,
+		"tokenfactory":           4,
 		"transfer":               3,
 		"upgrade":                2,
 		"vesting":                1,
@@ -692,7 +692,8 @@ func (s *AppGenesisTestSuite) TestGenesis() {
 						"amount": "10000000"
 					}
 				],
-				"denom_creation_gas_consume": "1000000"
+				"denom_creation_gas_consume": "1000000",
+				"whitelisted_hooks": []
 			},
 			"factory_denoms": []
 		},
