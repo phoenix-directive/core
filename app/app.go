@@ -18,8 +18,6 @@ import (
 	"github.com/terra-money/core/v2/app/custom_queriers"
 	"github.com/terra-money/core/v2/app/keepers"
 
-	"github.com/cosmos/gogoproto/grpc"
-
 	"cosmossdk.io/client/v2/autocli"
 	"cosmossdk.io/core/appmodule"
 	"cosmossdk.io/log"
@@ -240,29 +238,29 @@ func NewTerraApp(
 	return app
 }
 
-// Commit implements types.Application.
-// Subtle: this method shadows the method (*BaseApp).Commit of TerraApp.BaseApp.
-func (app *TerraApp) Commit() (*abcitypes.ResponseCommit, error) {
-	panic("unimplemented")
-}
+// // Commit implements types.Application.
+// // Subtle: this method shadows the method (*BaseApp).Commit of TerraApp.BaseApp.
+// func (app *TerraApp) Commit() (*abcitypes.ResponseCommit, error) {
+// 	panic("unimplemented")
+// }
 
-// FinalizeBlock implements types.Application.
-// Subtle: this method shadows the method (*BaseApp).FinalizeBlock of TerraApp.BaseApp.
-func (app *TerraApp) FinalizeBlock(*abcitypes.RequestFinalizeBlock) (*abcitypes.ResponseFinalizeBlock, error) {
-	panic("unimplemented")
-}
+// // FinalizeBlock implements types.Application.
+// // Subtle: this method shadows the method (*BaseApp).FinalizeBlock of TerraApp.BaseApp.
+// func (app *TerraApp) FinalizeBlock(*abcitypes.RequestFinalizeBlock) (*abcitypes.ResponseFinalizeBlock, error) {
+// 	panic("unimplemented")
+// }
 
-// PrepareProposal implements types.Application.
-// Subtle: this method shadows the method (*BaseApp).PrepareProposal of TerraApp.BaseApp.
-func (app *TerraApp) PrepareProposal(*abcitypes.RequestPrepareProposal) (*abcitypes.ResponsePrepareProposal, error) {
-	panic("unimplemented")
-}
+// // PrepareProposal implements types.Application.
+// // Subtle: this method shadows the method (*BaseApp).PrepareProposal of TerraApp.BaseApp.
+// func (app *TerraApp) PrepareProposal(*abcitypes.RequestPrepareProposal) (*abcitypes.ResponsePrepareProposal, error) {
+// 	panic("unimplemented")
+// }
 
-// ProcessProposal implements types.Application.
-// Subtle: this method shadows the method (*BaseApp).ProcessProposal of TerraApp.BaseApp.
-func (app *TerraApp) ProcessProposal(*abcitypes.RequestProcessProposal) (*abcitypes.ResponseProcessProposal, error) {
-	panic("unimplemented")
-}
+// // ProcessProposal implements types.Application.
+// // Subtle: this method shadows the method (*BaseApp).ProcessProposal of TerraApp.BaseApp.
+// func (app *TerraApp) ProcessProposal(*abcitypes.RequestProcessProposal) (*abcitypes.ResponseProcessProposal, error) {
+// 	panic("unimplemented")
+// }
 
 // RegisterAPIRoutes implements types.Application.
 func (app *TerraApp) RegisterAPIRoutes(apiSvr *api.Server, apiConfig config.APIConfig) {
@@ -295,11 +293,11 @@ func RegisterSwaggerAPI(rtr *mux.Router) {
 	rtr.PathPrefix("/swagger/").Handler(http.StripPrefix("/swagger/", staticServer))
 }
 
-// RegisterGRPCServer implements types.Application.
-// Subtle: this method shadows the method (*BaseApp).RegisterGRPCServer of TerraApp.BaseApp.
-func (app *TerraApp) RegisterGRPCServer(grpc.Server) {
-	panic("unimplemented")
-}
+// // RegisterGRPCServer implements types.Application.
+// // Subtle: this method shadows the method (*BaseApp).RegisterGRPCServer of TerraApp.BaseApp.
+// func (app *TerraApp) RegisterGRPCServer(grpc.Server) {
+// 	panic("unimplemented")
+// }
 
 // RegisterNodeService implements types.Application.
 func (app *TerraApp) RegisterNodeService(clientCtx client.Context, config config.Config) {

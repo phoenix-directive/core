@@ -47,13 +47,13 @@ import (
 // NewRootCmd creates a new root command for terrad.
 // It is called once in the main function.
 func NewRootCmd() (*cobra.Command, params.EncodingConfig) {
-	encodingConfig := terraapp.MakeEncodingConfig()
 	err := params.RegisterDenomsConfig()
 	if err != nil {
 		panic(err)
 	}
 	sdkConfig := params.RegisterAddressesConfig()
 	sdkConfig.Seal()
+	encodingConfig := terraapp.MakeEncodingConfig()
 
 	// we "pre"-instantiate the application for getting the injected/configured encoding configuration
 	initAppOptions := viper.New()
@@ -151,7 +151,7 @@ func initRootCmd(rootCmd *cobra.Command, moduleBasics module.BasicManager, encod
 	a := appCreator{encodingConfig}
 
 	rootCmd.AddCommand(
-		genutilcli.InitCmd(moduleBasics, terraapp.DefaultNodeHome),
+		InitCmd(moduleBasics, terraapp.DefaultNodeHome),
 		tmcli.NewCompletionCmd(rootCmd, true),
 		debug.Cmd(),
 		pruning.Cmd(a.newApp, terraapp.DefaultNodeHome),
