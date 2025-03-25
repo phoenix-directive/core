@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"cosmossdk.io/client/v2/autocli"
+	confixcmd "cosmossdk.io/tools/confix/cmd"
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -28,6 +29,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/client/pruning"
+
 	"github.com/cosmos/cosmos-sdk/client/rpc"
 	"github.com/cosmos/cosmos-sdk/client/snapshot"
 	addresscodec "github.com/cosmos/cosmos-sdk/codec/address"
@@ -156,6 +158,7 @@ func initRootCmd(rootCmd *cobra.Command, moduleBasics module.BasicManager, encod
 		debug.Cmd(),
 		pruning.Cmd(a.newApp, terraapp.DefaultNodeHome),
 		snapshot.Cmd(a.newApp),
+		confixcmd.ConfigCommand(),
 		// NewTestnetCmd(moduleBasics),
 	)
 
