@@ -235,7 +235,7 @@ func NewTerraAppKeepers(
 		keepers.AccountKeeper,
 		keepers.ModuleAccountAddrs(),
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
-		nil,
+		logger,
 	)
 	keepers.StakingKeeper = stakingkeeper.NewKeeper(
 		appCodec,
