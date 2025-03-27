@@ -159,6 +159,7 @@ func initRootCmd(rootCmd *cobra.Command, moduleBasics module.BasicManager, encod
 		pruning.Cmd(a.newApp, terraapp.DefaultNodeHome),
 		snapshot.Cmd(a.newApp),
 		confixcmd.ConfigCommand(),
+		server.StatusCommand(),
 		// NewTestnetCmd(moduleBasics),
 	)
 
