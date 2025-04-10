@@ -103,9 +103,9 @@ echo '{
  		}
  	]
 }' > $CHAIN_HOME/create-periodic-vesting-account.json
-$OLD_BINARY tx vesting create-periodic-vesting-account $WALLET_ADDR_2 $CHAIN_HOME/create-periodic-vesting-account.json --from val1 --keyring-backend test --chain-id $CHAIN_ID --home $CHAIN_HOME -y -o json
+NO_ECHO=$($OLD_BINARY tx vesting create-periodic-vesting-account $WALLET_ADDR_2 $CHAIN_HOME/create-periodic-vesting-account.json --from val1 --keyring-backend test --chain-id $CHAIN_ID --home $CHAIN_HOME -y -o json)
 sleep 1
-$OLD_BINARY tx vesting create-periodic-vesting-account $WALLET_ADDR_3 $CHAIN_HOME/create-periodic-vesting-account.json --from val1 --keyring-backend test --chain-id $CHAIN_ID --home $CHAIN_HOME -y -o json
+NO_ECHO=$($OLD_BINARY tx vesting create-periodic-vesting-account $WALLET_ADDR_3 $CHAIN_HOME/create-periodic-vesting-account.json --from val1 --keyring-backend test --chain-id $CHAIN_ID --home $CHAIN_HOME -y -o json)
 sleep 1
 
 GOV_ADDRESS=$($OLD_BINARY query auth module-account gov --home $CHAIN_HOME --output json | jq .account.base_account.address -r)
@@ -199,6 +199,18 @@ echo "CONTRACT_ADDRESS $CONTRACT_ADDRESS"
 CONTRACT_BALANCE=$($NEW_BINARY query bank balances $CONTRACT_ADDRESS --home $CHAIN_HOME --output=json | jq ".balances[0].amount")
 if [[ "$CONTRACT_BALANCE" == "100000000" ]]; then
     echo "Contract balance is less than 100000000"
+    exit 1
+fi
+
+# Check period vesting account
+echo "Check period vesting account"
+PERIOD_VESTING_BALANCE_1=$($NEW_BINARY query bank spendable-balances $WALLET_ADDR_2 --home $CHAIN_HOME --output=json | jq ".balances[0].amount")
+echo "PERIOD_VESTING_BALANCE_1 $PERIOD_VESTING_BALANCE_1"
+sleep 5
+PERIOD_VESTING_BALANCE_2=$($NEW_BINARY query bank spendable-balances $WALLET_ADDR_2 --home $CHAIN_HOME --output=json | jq ".balances[0].amount")
+echo "PERIOD_VESTING_BALANCE_2 $PERIOD_VESTING_BALANCE_2"
+if (( ${PERIOD_VESTING_BALANCE_2//\"} <= ${PERIOD_VESTING_BALANCE_1//\"} )); then
+    echo "Period vesting account balance must be updated every block"
     exit 1
 fi
 

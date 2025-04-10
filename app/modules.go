@@ -131,7 +131,7 @@ func appModules(app *TerraApp, encodingConfig terrappsparams.EncodingConfig, ski
 			encodingConfig.TxConfig,
 		),
 		auth.NewAppModule(app.appCodec, app.Keepers.AccountKeeper, nil, app.GetSubspace(authtypes.ModuleName)),
-		vesting.NewAppModule(app.Keepers.AccountKeeper, app.Keepers.BankKeeper),
+		vesting.NewAppModule(app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.Keepers.DistrKeeper, app.Keepers.StakingKeeper),
 		custombankmodule.NewAppModule(app.appCodec, app.Keepers.BankKeeper, app.Keepers.AccountKeeper, app.GetSubspace(banktypes.ModuleName)),
 		capability.NewAppModule(app.appCodec, *app.Keepers.CapabilityKeeper, false),
 		crisis.NewAppModule(&app.Keepers.CrisisKeeper, skipGenesisInvariants, app.GetSubspace(crisistypes.ModuleName)),

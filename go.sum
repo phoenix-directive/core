@@ -430,8 +430,6 @@ github.com/cosmos/cosmos-db v1.1.1 h1:FezFSU37AlBC8S98NlSagL76oqBRWq/prTPvFcEJNC
 github.com/cosmos/cosmos-db v1.1.1/go.mod h1:AghjcIPqdhSLP/2Z0yha5xPH3nLnskz81pBx3tcVSAw=
 github.com/cosmos/cosmos-proto v1.0.0-beta.5 h1:eNcayDLpip+zVLRLYafhzLvQlSmyab+RC5W7ZfmxJLA=
 github.com/cosmos/cosmos-proto v1.0.0-beta.5/go.mod h1:hQGLpiIUloJBMdQMMWb/4wRApmI9hjHH05nefC0Ojec=
-github.com/cosmos/cosmos-sdk v0.50.11 h1:LxR1aAc8kixdrs3itO+3a44sFoc+vjxVAOyPFx22yjk=
-github.com/cosmos/cosmos-sdk v0.50.11/go.mod h1:gt14Meok2IDCjbDtjwkbUcgVNEpUBDN/4hg9cCUtLgw=
 github.com/cosmos/go-bip39 v1.0.0 h1:pcomnQdrdH22njcAatO0yWojsUnCO3y2tNoV1cb6hHY=
 github.com/cosmos/go-bip39 v1.0.0/go.mod h1:RNJv0H/pOIVgxw6KS7QeX2a0Uo0aKUlfhZ4xuwvCdJw=
 github.com/cosmos/gogogateway v1.2.0 h1:Ae/OivNhp8DqBi/sh2A8a1D0y638GpL3tkmLQAiKxTE=
@@ -1083,8 +1081,10 @@ github.com/peterh/liner v1.1.1-0.20190123174540-a2c9a5303de7/go.mod h1:CRroGNssy
 github.com/petermattis/goid v0.0.0-20240813172612-4fcff4a6cae7 h1:Dx7Ovyv/SFnMFw3fD4oEoeorXc6saIiQ23LrGLth0Gw=
 github.com/petermattis/goid v0.0.0-20240813172612-4fcff4a6cae7/go.mod h1:pxMtw7cyUw6B2bRH0ZBANSPg+AoSud1I1iyJHI69jH4=
 github.com/philhofer/fwd v1.0.0/go.mod h1:gk3iGcWd9+svBvR0sR+KPcfE+RNWozjowpeBVG3ZVNU=
-github.com/phoenix-directive/alliance v0.4.5-0.20250207023423-503c4ec63c00 h1:JpRCo4mKXMZnbd6HAmjh6erFjV/zpkQmbsbtWopGfJE=
-github.com/phoenix-directive/alliance v0.4.5-0.20250207023423-503c4ec63c00/go.mod h1:zVKzF0eaaGWU/bLc7eibxZgUtmsIX0iS6mIQifjF+0o=
+github.com/phoenix-directive/alliance v0.4.5 h1:5F1I9+k4S+qu2lpn6dcothJdqZiW0EQpQ6HZTfSKml8=
+github.com/phoenix-directive/alliance v0.4.5/go.mod h1:zVKzF0eaaGWU/bLc7eibxZgUtmsIX0iS6mIQifjF+0o=
+github.com/phoenix-directive/cosmos-sdk v0.50.13-terra.0 h1:c6cO4GFaCgT7UuDLn+d/baM7u85dU9+j7zOa9RMEcYc=
+github.com/phoenix-directive/cosmos-sdk v0.50.13-terra.0/go.mod h1:hrWEFMU1eoXqLJeE6VVESpJDQH67FS1nnMrQIjO2daw=
 github.com/pierrec/lz4 v1.0.2-0.20190131084431-473cd7ce01a1/go.mod h1:3/3N9NVKO0jef7pBehbT1qWhCMrIgbYNnFAZCqQ5LRc=
 github.com/pierrec/lz4 v2.0.5+incompatible/go.mod h1:pdkljMzZIN41W+lC3N2tnIh5sFi+IEE17M5jbnwPHcY=
 github.com/pingcap/errors v0.11.4 h1:lFuQV/oaUMGcD2tqt+01ROSmJs75VG1ToEOkZIZ4nE4=
