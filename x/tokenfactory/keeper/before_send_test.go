@@ -10,7 +10,7 @@ import (
 	"github.com/terra-money/core/v2/x/tokenfactory/types"
 
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
-	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
+	wasmvmtypes "github.com/CosmWasm/wasmvm/v2/types"
 
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
@@ -207,7 +207,7 @@ func (s *KeeperTestSuite) TestCoinsFromSDK() {
 		Amount: "100",
 	}
 
-	expected_coins := wasmvmtypes.Coins{
+	expected_coins := []wasmvmtypes.Coin{
 		wasmvmtypes.Coin{
 			Denom:  "bar",
 			Amount: "100",

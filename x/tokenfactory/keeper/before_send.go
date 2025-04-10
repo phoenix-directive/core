@@ -10,7 +10,7 @@ import (
 	"github.com/terra-money/core/v2/x/tokenfactory/types"
 
 	errorsmod "cosmossdk.io/errors"
-	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
+	wasmvmtypes "github.com/CosmWasm/wasmvm/v2/types"
 )
 
 func (k Keeper) setBeforeSendHook(ctx sdk.Context, denom string, cosmwasmAddress string) error {
@@ -49,8 +49,8 @@ func (k Keeper) GetBeforeSendHook(ctx sdk.Context, denom string) string {
 	return string(bz)
 }
 
-func CWCoinsFromSDKCoins(in sdk.Coins) wasmvmtypes.Coins {
-	var cwCoins wasmvmtypes.Coins
+func CWCoinsFromSDKCoins(in sdk.Coins) []wasmvmtypes.Coin {
+	var cwCoins []wasmvmtypes.Coin
 	for _, coin := range in {
 		cwCoins = append(cwCoins, CWCoinFromSDKCoin(coin))
 	}
