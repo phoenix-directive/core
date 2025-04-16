@@ -38,7 +38,7 @@ func NewAppModule(cdc codec.Codec, keeper custombankkeeper.Keeper, accountKeeper
 // NOTE: Overriding this method as not doing so will cause a panic
 // when trying to force this custom keeper into a bankkeeper.BaseKeeper
 func (am AppModule) RegisterServices(cfg module.Configurator) {
-	types.RegisterMsgServer(cfg.MsgServer(), bankkeeper.NewMsgServerImpl(am.keeper))
+	types.RegisterMsgServer(cfg.MsgServer(), custombankkeeper.NewMsgServerImpl(am.keeper))
 	types.RegisterQueryServer(cfg.QueryServer(), am.keeper)
 
 	m := bankkeeper.NewMigrator(am.keeper.BaseKeeper, am.subspace)

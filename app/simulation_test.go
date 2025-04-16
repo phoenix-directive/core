@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/terra-money/core/v2/app"
 	"github.com/terra-money/core/v2/app/keepers"
+	"github.com/terra-money/core/v2/app/params"
 
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 
@@ -21,6 +22,12 @@ import (
 
 func init() {
 	simcli.GetSimulatorFlags()
+	err := params.RegisterDenomsConfig()
+	if err != nil {
+		panic(err)
+	}
+	sdkConfig := params.RegisterAddressesConfig()
+	sdkConfig.Seal()
 }
 
 // BenchmarkSimulation run the chain simulation

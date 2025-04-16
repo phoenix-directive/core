@@ -1061,8 +1061,8 @@ github.com/petermattis/goid v0.0.0-20240813172612-4fcff4a6cae7/go.mod h1:pxMtw7c
 github.com/philhofer/fwd v1.0.0/go.mod h1:gk3iGcWd9+svBvR0sR+KPcfE+RNWozjowpeBVG3ZVNU=
 github.com/phoenix-directive/alliance v0.4.5 h1:5F1I9+k4S+qu2lpn6dcothJdqZiW0EQpQ6HZTfSKml8=
 github.com/phoenix-directive/alliance v0.4.5/go.mod h1:zVKzF0eaaGWU/bLc7eibxZgUtmsIX0iS6mIQifjF+0o=
-github.com/phoenix-directive/cosmos-sdk v0.50.13-terra.0 h1:c6cO4GFaCgT7UuDLn+d/baM7u85dU9+j7zOa9RMEcYc=
-github.com/phoenix-directive/cosmos-sdk v0.50.13-terra.0/go.mod h1:hrWEFMU1eoXqLJeE6VVESpJDQH67FS1nnMrQIjO2daw=
+github.com/phoenix-directive/cosmos-sdk v0.50.13-terra.1 h1:/3qouVUWdRrf5KzEwLMp3fxQMWebG5B6xADXHPFzvGo=
+github.com/phoenix-directive/cosmos-sdk v0.50.13-terra.1/go.mod h1:hrWEFMU1eoXqLJeE6VVESpJDQH67FS1nnMrQIjO2daw=
 github.com/pierrec/lz4 v1.0.2-0.20190131084431-473cd7ce01a1/go.mod h1:3/3N9NVKO0jef7pBehbT1qWhCMrIgbYNnFAZCqQ5LRc=
 github.com/pierrec/lz4 v2.0.5+incompatible/go.mod h1:pdkljMzZIN41W+lC3N2tnIh5sFi+IEE17M5jbnwPHcY=
 github.com/pingcap/errors v0.11.4 h1:lFuQV/oaUMGcD2tqt+01ROSmJs75VG1ToEOkZIZ4nE4=
