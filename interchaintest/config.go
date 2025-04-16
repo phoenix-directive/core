@@ -16,6 +16,7 @@ var (
 	Image            = ibc.DockerImage{
 		Repository: "terramoneycore",
 		Version:    "latest",
+		UIDGID:     "1000:1000",
 	}
 	IBCRelayerImage   = "ghcr.io/cosmos/relayer"
 	IBCRelayerVersion = "main"
