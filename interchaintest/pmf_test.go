@@ -105,7 +105,7 @@ func TestPMF(t *testing.T) {
 	r := interchaintest.NewBuiltinRelayerFactory(
 		ibc.CosmosRly,
 		zaptest.NewLogger(t),
-		interchaintestrelayer.CustomDockerImage(IBCRelayerImage, IBCRelayerVersion, "100:1000"),
+		// interchaintestrelayer.CustomDockerImage(IBCRelayerImage, IBCRelayerVersion, "100:1000"),
 		interchaintestrelayer.StartupFlags("--processor", "events", "--block-history", "100"),
 	).Build(t, client, network)
 

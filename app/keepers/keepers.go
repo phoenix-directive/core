@@ -381,7 +381,7 @@ func NewTerraAppKeepers(
 	keepers.PacketForwardKeeper = *packetforwardkeeper.NewKeeper(
 		appCodec,
 		keepers.keys[packetforwardtypes.StoreKey],
-		nil,
+		keepers.TransferKeeper,
 		keepers.IBCKeeper.ChannelKeeper,
 		keepers.BankKeeper,
 		keepers.IBCKeeper.ChannelKeeper,
