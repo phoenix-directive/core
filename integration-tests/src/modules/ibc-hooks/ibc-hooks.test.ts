@@ -1,6 +1,6 @@
 import { Coin, Coins, MsgInstantiateContract, MsgStoreCode, MsgTransfer } from "@terra-money/feather.js";
 import { deriveIbcHooksSender } from "@terra-money/feather.js/dist/core/ibc-hooks";
-import { ibcTransfer, getMnemonics, getLCDClient, blockInclusion } from "../../helpers";
+import { ibcTransfer, getMnemonics, getLCDClient, blockInclusion, getValueByIndexAndTypeAndKey, getEventsByIndex } from "../../helpers";
 import fs from "fs";
 import path from 'path';
 import moment from "moment";
@@ -33,7 +33,7 @@ describe("IbcHooks Module (github.com/cosmos/ibc-apps/modules/ibc-hooks/v7) ", (
         let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
         await blockInclusion();
         let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
-        let codeId = Number(txResult.logs[0].events[1].attributes[1].value);
+        let codeId = getValueByIndexAndTypeAndKey(txResult.events, 0, "store_code", "code_id");
         expect(codeId).toBeDefined();
 
         const msgInstantiateContract = new MsgInstantiateContract(
@@ -52,7 +52,7 @@ describe("IbcHooks Module (github.com/cosmos/ibc-apps/modules/ibc-hooks/v7) ", (
         result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
         await blockInclusion();
         txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
-        contractAddress = txResult.logs[0].events[4].attributes[0].value;
+        contractAddress = getValueByIndexAndTypeAndKey(txResult.events, 0, "instantiate", "_contract_address");
         expect(contractAddress).toBeDefined();
     })
 
@@ -63,39 +63,44 @@ describe("IbcHooks Module (github.com/cosmos/ibc-apps/modules/ibc-hooks/v7) ", (
             let tx = await chain2Wallet.createAndSignTx({
                 msgs: [
                     new MsgTransfer(
-                        "transfer",
-                        "channel-0",
-                        Coin.fromString("1uluna"),
-                        walletAddress,
-                        contractAddress,
-                        undefined,
-                        moment.utc().add(1, "minute").unix().toString() + "000000000",
-                        `{"wasm":{"contract": "${contractAddress}" ,"msg": {"increment": {}}}}`
-                    ),
-                    new MsgTransfer(
-                        "transfer",
-                        "channel-0",
-                        Coin.fromString("1uluna"),
-                        walletAddress,
-                        contractAddress,
-                        undefined,
-                        moment.utc().add(1, "minute").unix().toString() + "000000000",
-                        `{"wasm":{"contract": "${contractAddress}" ,"msg": {"increment": {}}}}`
-                    ),
+                    "transfer",
+                    "channel-0",
+                    Coin.fromString("1uluna"),
+                    walletAddress,
+                    contractAddress,
+                    undefined,
+                    moment.utc().add(1, "minute").unix().toString() + "000000000",
+                    `{"wasm":{"contract": "${contractAddress}" ,"msg": {"increment": {}}}}`
+                ),
+                new MsgTransfer(
+                    "transfer",
+                    "channel-0",
+                    Coin.fromString("1uluna"),
+                    walletAddress,
+                    contractAddress,
+                    undefined,
+                    moment.utc().add(1, "minute").unix().toString() + "000000000",
+                    `{"wasm":{"contract": "${contractAddress}" ,"msg": {"increment": {}}}}`
+                ),
                 ],
                 chainID: "test-2",
             });
             let result = await LCD.chain2.tx.broadcastSync(tx, "test-2");
             await ibcTransfer();
             let txResult = await LCD.chain2.tx.txInfo(result.txhash, "test-2") as any;
-            expect(txResult.logs[0].eventsByType.ibc_transfer)
+            let txEvents = getEventsByIndex(txResult.events, 0);
+            expect(txEvents.find((event: any) => event.type === "ibc_transfer"))
                 .toStrictEqual({
-                    "sender": [walletAddress],
-                    "receiver": [contractAddress],
-                    "amount": ["1"],
-                    "denom": ["uluna"],
-                    "memo": [`{"wasm":{"contract": "${contractAddress}" ,"msg": {"increment": {}}}}`]
-                });
+                    type: "ibc_transfer",
+                    attributes: [
+                        {index: true, key: "sender", value: walletAddress},
+                        {index: true, key: "receiver", value: contractAddress},
+                        {index: true, key: "amount", value: "1"},
+                        {index: true, key: "denom", value: "uluna"},
+                        {index: true, key: "memo", value: `{"wasm":{"contract": "${contractAddress}" ,"msg": {"increment": {}}}}`},
+                        {index: true, key: "msg_index", value: "0"}
+                    ]
+                })
             // query to validate the count is 1
             let res = await LCD.chain1.wasm.contractQuery(
                 contractAddress,
