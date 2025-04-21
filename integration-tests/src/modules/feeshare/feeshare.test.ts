@@ -1,4 +1,4 @@
-import { getMnemonics, blockInclusion, getLCDClient } from "../../helpers";
+import { getMnemonics, blockInclusion, getLCDClient, getValueByIndexAndTypeAndKey, getEventsByIndex } from "../../helpers";
 import { Coins, Fee, MnemonicKey, MsgExecuteContract, MsgInstantiateContract, MsgRegisterFeeShare, MsgStoreCode } from "@terra-money/feather.js";
 import fs from "fs";
 import path from 'path';
@@ -27,7 +27,7 @@ describe("Feeshare Module (https://github.com/terra-money/core/tree/release/v2.6
         let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
         await blockInclusion();
         let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
-        let codeId = Number(txResult.logs[0].events[1].attributes[1].value);
+        let codeId = Number(getValueByIndexAndTypeAndKey(txResult.events, 0, "store_code", "code_id"));
         expect(codeId).toBeDefined();
 
         const msgInstantiateContract = new MsgInstantiateContract(
@@ -46,7 +46,7 @@ describe("Feeshare Module (https://github.com/terra-money/core/tree/release/v2.6
         result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
         await blockInclusion();
         txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
-        contractAddress = txResult.logs[0].events[4].attributes[0].value;
+        contractAddress = getValueByIndexAndTypeAndKey(txResult.events, 0, "instantiate", "_contract_address");
         expect(contractAddress).toBeDefined();
     });
 
@@ -80,28 +80,42 @@ describe("Feeshare Module (https://github.com/terra-money/core/tree/release/v2.6
 
         // Check the tx logs
         let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
-        expect(txResult.logs[0].events)
+        let txEvents = getEventsByIndex(txResult.events, 0);
+        expect(txEvents)
             .toMatchObject([{
                 "type": "message",
                 "attributes": [{
+                    "index": true,
                     "key": "action",
                     "value": "/juno.feeshare.v1.MsgRegisterFeeShare"
                 }, {
+                    "index": true,
                     "key": "sender",
                     "value": feeshareAccountAddress,
                 }, {
+                    "index": true,
                     "key": "module",
                     "value": "feeshare"
+                }, {
+                    "index": true,
+                    "key": "msg_index",
+                    "value": "0"
                 }]
             },
             {
                 "type": "register_feeshare",
                 "attributes": [{
+                    "index": true,
                     "key": "contract",
                     "value": contractAddress
                 }, {
+                    "index": true,
                     "key": "withdrawer_address",
                     "value": randomAccountAddress,
+                }, {
+                    "index": true,
+                    "key": "msg_index",
+                    "value": "0"
                 }]
             }])
 
@@ -140,38 +154,58 @@ describe("Feeshare Module (https://github.com/terra-money/core/tree/release/v2.6
 
         // Check the tx logs have the expected events
         txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
-        expect(txResult.logs[0].events)
+        txEvents = getEventsByIndex(txResult.events, 0);
+        expect(txEvents)
             .toMatchObject([{
                 "type": "message",
                 "attributes": [{
+                    "index": true,
                     "key": "action",
                     "value": "/cosmwasm.wasm.v1.MsgExecuteContract"
                 }, {
+                    "index": true,
                     "key": "sender",
                     "value": feeshareAccountAddress
                 }, {
+                    "index": true,
                     "key": "module",
                     "value": "wasm"
+                }, {
+                    "index": true,
+                    "key": "msg_index",
+                    "value": "0"
                 }]
             },
             {
                 "type": "execute",
                 "attributes": [{
+                    "index": true,
                     "key": "_contract_address",
                     "value": contractAddress
+                }, {
+                    "index": true,
+                    "key": "msg_index",
+                    "value": "0"
                 }]
             },
             {
                 "type": "wasm",
                 "attributes": [{
+                    "index": true,
                     "key": "_contract_address",
                     "value": contractAddress
                 }, {
+                    "index": true,
                     "key": "action",
                     "value": "change_owner"
                 }, {
+                    "index": true,
                     "key": "owner",
                     "value": randomAccountAddress
+                }, {
+                    "index": true,
+                    "key": "msg_index",
+                    "value": "0"
                 }]
             }
             ])
