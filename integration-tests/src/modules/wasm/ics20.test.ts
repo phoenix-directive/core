@@ -1,6 +1,6 @@
 
 import { MnemonicKey, MsgExecuteContract, MsgInstantiateContract, MsgStoreCode } from "@terra-money/feather.js";
-import { getMnemonics, getLCDClient, blockInclusion, ibcTransfer } from "../../helpers";
+import { getMnemonics, getLCDClient, blockInclusion, ibcTransfer, getEventsByIndex } from "../../helpers";
 import fs from "fs";
 import path from 'path';
 import { execSync, exec } from 'child_process';
@@ -48,9 +48,11 @@ describe("Wasm Module (https://github.com/CosmWasm/wasmd/releases/tag/v0.45.0) "
         await blockInclusion();
 
         let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
-        cw20BaseCodeId = Number(txResult.logs[0].events[1].attributes[1].value);
+        const events = getEventsByIndex(txResult.events, 0);
+        cw20BaseCodeId = Number(events[1].attributes[1].value);
         expect(cw20BaseCodeId).toBeDefined();
-        ics20CodeId = Number(txResult.logs[1].events[1].attributes[1].value);
+        const events2 = getEventsByIndex(txResult.events, 1);
+        ics20CodeId = Number(events2[1].attributes[1].value);
         expect(ics20CodeId).toBeDefined();
     })
 
@@ -77,8 +79,10 @@ describe("Wasm Module (https://github.com/CosmWasm/wasmd/releases/tag/v0.45.0) "
             });
             let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
             await blockInclusion();
+            await blockInclusion();
             let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
-            cw20ContractAddr = txResult.logs[0].events[1].attributes[0].value;
+            let events = getEventsByIndex(txResult.events, 0);
+            cw20ContractAddr = events[1].attributes[0].value;
             expect(cw20ContractAddr).toBeDefined();
 
             tx = await wallet.createAndSignTx({
@@ -103,7 +107,8 @@ describe("Wasm Module (https://github.com/CosmWasm/wasmd/releases/tag/v0.45.0) "
             result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
             await blockInclusion();
             txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
-            ics20ContractAddr = txResult.logs[0].events[1].attributes[0].value;
+            events = getEventsByIndex(txResult.events, 0);
+            ics20ContractAddr = events[1].attributes[0].value;
             expect(ics20ContractAddr).toBeDefined();
         })
 
@@ -133,7 +138,7 @@ describe("Wasm Module (https://github.com/CosmWasm/wasmd/releases/tag/v0.45.0) "
             expect(res.channels[0]).toBeDefined();
             expect(res.channels[0].channel_id).toBeDefined();
             ics20ContractChannelId = res.channels[0].channel_id;
-        })
+        }, 120_000)
 
 
 
@@ -164,75 +169,111 @@ describe("Wasm Module (https://github.com/CosmWasm/wasmd/releases/tag/v0.45.0) "
                 let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
                 await blockInclusion();
                 let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
-                let events = txResult.logs[0].events;
+                let events = getEventsByIndex(txResult.events, 0);
 
                 // Asser the order of events execution on chain
                 expect(events[0]).toStrictEqual({
                     "type": "message",
                     "attributes": [{
+                        "index": true,
                         "key": "action",
                         "value": "/cosmwasm.wasm.v1.MsgExecuteContract"
                     }, {
+                        "index": true,
                         "key": "sender",
                         "value": walletAddress
                     }, {
+                        "index": true,
                         "key": "module",
                         "value": "wasm"
+                    }, {
+                        "index": true,
+                        "key": "msg_index",
+                        "value": "0"
                     }]
                 });
                 expect(events[1]).toStrictEqual({
                     "type": "execute",
                     "attributes": [{
+                        "index": true,
                         "key": "_contract_address",
                         "value": cw20ContractAddr
+                    }, {
+                        "index": true,
+                        "key": "msg_index",
+                        "value": "0"
                     }]
                 });
                 expect(events[2]).toStrictEqual({
                     "type": "wasm",
                     "attributes": [{
+                        "index": true,
                         "key": "_contract_address",
                         "value": cw20ContractAddr
                     }, {
+                        "index": true,
                         "key": "action",
                         "value": "send"
                     }, {
+                        "index": true,
                         "key": "from",
                         "value": walletAddress
                     }, {
+                        "index": true,
                         "key": "to",
                         "value": ics20ContractAddr
                     }, {
+                        "index": true,
                         "key": "amount",
                         "value": "100000"
+                    }, {
+                        "index": true,
+                        "key": "msg_index",
+                        "value": "0"
                     }]
                 });
                 expect(events[3]).toStrictEqual({
                     "type": "execute",
                     "attributes": [{
+                        "index": true,
                         "key": "_contract_address",
                         "value": ics20ContractAddr
+                    }, {
+                        "index": true,
+                        "key": "msg_index",
+                        "value": "0"
                     }]
                 });
                 expect(events[4]).toStrictEqual({
                     "type": "wasm",
                     "attributes": [{
+                        "index": true,
                         "key": "_contract_address",
                         "value": ics20ContractAddr
                     }, {
+                        "index": true,
                         "key": "action",
                         "value": "transfer"
                     }, {
+                        "index": true,
                         "key": "amount",
                         "value": "100000"
                     }, {
+                        "index": true,
                         "key": "denom",
                         "value": "cw20:" + cw20ContractAddr
                     }, {
+                        "index": true,
                         "key": "receiver",
                         "value": randomWalletAddress
                     }, {
+                        "index": true,
                         "key": "sender",
                         "value": walletAddress
+                    }, {
+                        "index": true,
+                        "key": "msg_index",
+                        "value": "0"
                     }]
                 });
 
