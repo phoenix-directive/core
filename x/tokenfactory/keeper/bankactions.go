@@ -81,6 +81,11 @@ func (k Keeper) forceTransfer(ctx sdk.Context, amount sdk.Coin, fromAddr string,
 		return err
 	}
 
+	toAcc, err := sdk.AccAddressFromBech32(toAddr)
+	if err != nil {
+		return err
+	}
+
 	sortedPermAddrs := make([]string, 0, len(k.permAddrs))
 	for moduleName := range k.permAddrs {
 		sortedPermAddrs = append(sortedPermAddrs, moduleName)
@@ -96,17 +101,11 @@ func (k Keeper) forceTransfer(ctx sdk.Context, amount sdk.Coin, fromAddr string,
 		if account.GetAddress().Equals(fromAcc) {
 			return status.Errorf(codes.Internal, "send from module acc not available")
 		}
+
+		if account.GetAddress().Equals(toAcc) {
+			return status.Errorf(codes.Internal, "send to module acc not available")
+		}
 	}
 
-	fromSdkAddr, err := sdk.AccAddressFromBech32(fromAddr)
-	if err != nil {
-		return err
-	}
-
-	toSdkAddr, err := sdk.AccAddressFromBech32(toAddr)
-	if err != nil {
-		return err
-	}
-
-	return k.bankKeeper.SendCoins(ctx, fromSdkAddr, toSdkAddr, sdk.NewCoins(amount))
+	return k.bankKeeper.SendCoins(ctx, fromAcc, toAcc, sdk.NewCoins(amount))
 }
