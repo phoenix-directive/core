@@ -1,14 +1,16 @@
 package keeper
 
 import (
+	"context"
 	"encoding/json"
 
+	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/terra-money/core/v2/x/tokenfactory/types"
 
 	errorsmod "cosmossdk.io/errors"
-	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
+	wasmvmtypes "github.com/CosmWasm/wasmvm/v2/types"
 )
 
 func (k Keeper) setBeforeSendHook(ctx sdk.Context, denom string, cosmwasmAddress string) error {
@@ -47,8 +49,8 @@ func (k Keeper) GetBeforeSendHook(ctx sdk.Context, denom string) string {
 	return string(bz)
 }
 
-func CWCoinsFromSDKCoins(in sdk.Coins) wasmvmtypes.Coins {
-	var cwCoins wasmvmtypes.Coins
+func CWCoinsFromSDKCoins(in sdk.Coins) []wasmvmtypes.Coin {
+	var cwCoins []wasmvmtypes.Coin
 	for _, coin := range in {
 		cwCoins = append(cwCoins, CWCoinFromSDKCoin(coin))
 	}
@@ -75,14 +77,15 @@ func (k Keeper) Hooks() Hooks {
 }
 
 // TrackBeforeSend calls the before send listener contract surpresses any errors
-func (h Hooks) TrackBeforeSend(ctx sdk.Context, from, to sdk.AccAddress, amount sdk.Coins) {
-	/* #nosec */
-	_ = h.k.callBeforeSendListener(ctx, from, to, amount, false)
+func (h Hooks) TrackBeforeSend(ctx context.Context, from, to sdk.AccAddress, amount sdk.Coins) {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	_ = h.k.callBeforeSendListener(sdkCtx, from, to, amount, false)
 }
 
 // BlockBeforeSend calls the before send listener contract returns any errors
-func (h Hooks) BlockBeforeSend(ctx sdk.Context, from, to sdk.AccAddress, amount sdk.Coins) error {
-	return h.k.callBeforeSendListener(ctx, from, to, amount, true)
+func (h Hooks) BlockBeforeSend(ctx context.Context, from, to sdk.AccAddress, amount sdk.Coins) error {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	return h.k.callBeforeSendListener(sdkCtx, from, to, amount, true)
 }
 
 // callBeforeSendListener iterates over each coin and sends corresponding sudo msg to the contract address stored in state.
@@ -141,7 +144,7 @@ func (k Keeper) callBeforeSendListener(ctx sdk.Context, from, to sdk.AccAddress,
 					return errorsmod.Wrapf(err, "failed to call before send hook for denom %s", coin.Denom)
 				}
 			} else {
-				childCtx := ctx.WithGasMeter(sdk.NewGasMeter(types.TrackBeforeSendGasLimit))
+				childCtx := ctx.WithGasMeter(storetypes.NewGasMeter(types.TrackBeforeSendGasLimit))
 				_, err = k.contractKeeper.Sudo(childCtx.WithEventManager(em), cwAddr, msgBz)
 				if err != nil {
 					return errorsmod.Wrapf(err, "failed to call before send hook for denom %s", coin.Denom)

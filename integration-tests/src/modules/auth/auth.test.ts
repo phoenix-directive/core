@@ -1,5 +1,5 @@
-import { getMnemonics, getLCDClient, blockInclusion } from "../../helpers";
-import { ContinuousVestingAccount, Coins, MnemonicKey, MsgCreateVestingAccount, Coin } from "@terra-money/feather.js";
+import { getMnemonics, getLCDClient, blockInclusion, getEventsByIndex } from "../../helpers";
+import { ContinuousVestingAccount, Coins, MnemonicKey, MsgCreateVestingAccount, Coin, MsgCreatePeriodicVestingAccount, Period } from "@terra-money/feather.js";
 import moment from "moment";
 
 describe("Auth Module (https://github.com/terra-money/cosmos-sdk/tree/release/v0.47.x/x/auth)", () => {
@@ -76,58 +76,194 @@ describe("Auth Module (https://github.com/terra-money/cosmos-sdk/tree/release/v0
         let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
         await blockInclusion();
         let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
-        expect(txResult.logs[0].events)
+        const events = getEventsByIndex(txResult.events, 0);
+        expect(events)
             .toEqual([{
                 "type": "message",
                 "attributes": [{
+                    "index": true,
                     "key": "action",
                     "value": "/cosmos.vesting.v1beta1.MsgCreateVestingAccount"
                 }, {
+                    "index": true,
                     "key": "sender",
                     "value": vestAccAddr1
                 }, {
+                    "index": true,
                     "key": "module",
                     "value": "vesting"
+                }, {
+                    "index": true,
+                    "key": "msg_index",
+                    "value": "0"
                 }]
             },
             {
                 "type": "coin_spent",
                 "attributes": [{
+                    "index": true,
                     "key": "spender",
                     "value": vestAccAddr1
                 }, {
+                    "index": true,
                     "key": "amount",
                     "value": "100uluna"
+                }, {
+                    "index": true,
+                    "key": "msg_index",
+                    "value": "0"
                 }]
             },
             {
                 "type": "coin_received",
                 "attributes": [{
+                    "index": true,
                     "key": "receiver",
                     "value": randomAccountAddress
                 }, {
+                    "index": true,
                     "key": "amount",
                     "value": "100uluna"
+                }, {
+                    "index": true,
+                    "key": "msg_index",
+                    "value": "0"
                 }]
             },
             {
                 "type": "transfer",
                 "attributes": [{
+                    "index": true,
                     "key": "recipient",
                     "value": randomAccountAddress
                 }, {
+                    "index": true,
                     "key": "sender",
                     "value": vestAccAddr1
                 }, {
+                    "index": true,
                     "key": "amount",
                     "value": "100uluna"
+                }, {
+                    "index": true,
+                    "key": "msg_index",
+                    "value": "0"
                 }]
             },
             {
                 "type": "message",
                 "attributes": [{
+                    "index": true,
                     "key": "sender",
                     "value": vestAccAddr1
+                }, {
+                    "index": true,
+                    "key": "msg_index",
+                    "value": "0"
+                }]
+            }])
+    });
+
+    test('Must create a periodic vesting account', async () => {
+        const randomAccountAddress = new MnemonicKey().accAddress("terra");
+        // Register a new vesting account
+        let tx = await wallet.createAndSignTx({
+            msgs: [new MsgCreatePeriodicVestingAccount (
+                vestAccAddr1,
+                randomAccountAddress,
+                moment().add(1, "minute").unix(),
+                [new Period(1000000, "1000000uluna"), new Period(1000000, "1000000uluna")]
+            )],
+            chainID: "test-1",
+        });
+
+        let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
+        await blockInclusion();
+        let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
+        const events = getEventsByIndex(txResult.events, 0);
+        expect(events)
+            .toEqual([{
+                "type": "message",
+                "attributes": [{
+                    "index": true,
+                    "key": "action",
+                    "value": "/cosmos.vesting.v1beta1.MsgCreatePeriodicVestingAccount"
+                }, {
+                    "index": true,
+                    "key": "sender",
+                    "value": vestAccAddr1
+                }, {
+                    "index": true,
+                    "key": "module",
+                    "value": "vesting"
+                }, {
+                    "index": true,
+                    "key": "msg_index",
+                    "value": "0"
+                }]
+            },
+            {
+                "type": "coin_spent",
+                "attributes": [{
+                    "index": true,
+                    "key": "spender",
+                    "value": vestAccAddr1
+                }, {
+                    "index": true,
+                    "key": "amount",
+                    "value": "2000000uluna"
+                }, {
+                    "index": true,
+                    "key": "msg_index",
+                    "value": "0"
+                }]
+            },
+            {
+                "type": "coin_received",
+                "attributes": [{
+                    "index": true,
+                    "key": "receiver",
+                    "value": randomAccountAddress
+                }, {
+                    "index": true,
+                    "key": "amount",
+                    "value": "2000000uluna"
+                }, {
+                    "index": true,
+                    "key": "msg_index",
+                    "value": "0"
+                }]
+            },
+            {
+                "type": "transfer",
+                "attributes": [{
+                    "index": true,
+                    "key": "recipient",
+                    "value": randomAccountAddress
+                }, {
+                    "index": true,
+                    "key": "sender",
+                    "value": vestAccAddr1
+                }, {
+                    "index": true,
+                    "key": "amount",
+                    "value": "2000000uluna"
+                }, {
+                    "index": true,
+                    "key": "msg_index",
+                    "value": "0"
+                }]
+            },
+            {
+                "type": "message",
+                "attributes": [{
+                    "index": true,
+                    "key": "sender",
+                    "value": vestAccAddr1
+                }, {
+                    "index": true,
+                    "key": "msg_index",
+                    "value": "0"
                 }]
             }])
     });

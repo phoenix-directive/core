@@ -11,6 +11,8 @@
     "test:chain:upgrade:v13" : "bash src/setup/chain-upgrade/upgrade-simulation-13.sh",
     "test:chain:upgrade:v14" : "bash src/setup/chain-upgrade/upgrade-simulation-14.sh",
     "test:chain:upgrade:v15" : "bash src/setup/chain-upgrade/upgrade-simulation-15.sh",
+    "test:chain:upgrade:v16" : "bash src/setup/chain-upgrade/upgrade-simulation-16.sh",
+    "test:chain:upgrade:v17" : "bash src/setup/chain-upgrade/upgrade-simulation-17.sh",
     "test:start" : "jest --runInBand --detectOpenHandles",
     "start": "npm run test:init && npm run test:relayer && npm run test:start",
     "test:clean": "rm -rf src/test-data chain-upgrade-data && pkill terrad && pkill terrad && pkill relayer"
@@ -40,6 +42,7 @@
   },
   "dependencies": {
     "@terra-money/feather.js": "^2.1.0-beta.2",
-    "moment": "^2.29.4"
+    "moment": "^2.29.4",
+    "long": "^5.3.1"
   }
 }

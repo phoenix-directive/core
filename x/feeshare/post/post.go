@@ -2,6 +2,7 @@ package ante
 
 import (
 	errorsmod "cosmossdk.io/errors"
+	math "cosmossdk.io/math"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -63,7 +64,7 @@ func (fsd FeeSharePayoutDecorator) PostHandle(
 // FeeSharePayout takes the total fees paid for a transaction and
 // split these fees equally between all the contacts involved in the
 // transaction based on the module params.
-func (fsd FeeSharePayoutDecorator) FeeSharePayout(ctx sdk.Context, txFees sdk.Coins, devShares sdk.Dec, allowedDenoms []string) (err error) {
+func (fsd FeeSharePayoutDecorator) FeeSharePayout(ctx sdk.Context, txFees sdk.Coins, devShares math.LegacyDec, allowedDenoms []string) (err error) {
 	executedContracts, found := fsd.wasmKeeper.GetExecutedContractAddresses(ctx)
 	if !found {
 		return err
@@ -134,7 +135,7 @@ func GetWithdrawalAddressFromContract(ctx sdk.Context, contractAddresses []strin
 
 // CalculateFee takes the total fees paid for a transaction and split
 // these fees equaly between all number of pairs considering allwoedDenoms
-func CalculateFee(fees sdk.Coins, devShares sdk.Dec, numOfdevs int, allowedDenoms []string) sdk.Coins {
+func CalculateFee(fees sdk.Coins, devShares math.LegacyDec, numOfdevs int, allowedDenoms []string) sdk.Coins {
 	var allowedFeesDenoms sdk.Coins
 	if len(allowedDenoms) == 0 {
 		allowedFeesDenoms = fees

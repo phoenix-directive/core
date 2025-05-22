@@ -7,7 +7,6 @@ import (
 
 	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 
-	"github.com/cometbft/cometbft/libs/log"
 	"github.com/stretchr/testify/require"
 
 	"github.com/cometbft/cometbft/crypto"
@@ -16,7 +15,8 @@ import (
 
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 
-	dbm "github.com/cometbft/cometbft-db"
+	log "cosmossdk.io/log"
+	dbm "github.com/cosmos/cosmos-db"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -34,8 +34,9 @@ func CreateTestInput() (*app.TerraApp, sdk.Context) {
 	genesisState := app.NewDefaultGenesisState(encCfg.Marshaler)
 	genesisState.SetDefaultTerraConfig(encCfg.Marshaler)
 	db := dbm.NewMemDB()
+	logger := log.NewNopLogger()
 	terraApp := app.NewTerraApp(
-		log.NewTMLogger(log.NewSyncWriter(os.Stdout)),
+		logger,
 		db,
 		nil,
 		true,
@@ -44,9 +45,9 @@ func CreateTestInput() (*app.TerraApp, sdk.Context) {
 		0,
 		encCfg,
 		simtestutil.EmptyAppOptions{},
-		wasmtypes.DefaultWasmConfig(),
+		wasmtypes.DefaultNodeConfig(),
 	)
-	ctx := terraApp.BaseApp.NewContext(true, tmproto.Header{Height: 1, ChainID: "phoenix-1", Time: time.Now()})
+	ctx := terraApp.BaseApp.NewContextLegacy(true, tmproto.Header{Height: 1, ChainID: "phoenix-1", Time: time.Now()})
 	err := terraApp.Keepers.WasmKeeper.SetParams(ctx, wasmtypes.DefaultParams())
 	if err != nil {
 		panic(err)
@@ -59,7 +60,8 @@ func CreateTestInput() (*app.TerraApp, sdk.Context) {
 	if err != nil {
 		panic(err)
 	}
-	terraApp.Keepers.DistrKeeper.SetFeePool(ctx, distrtypes.InitialFeePool())
+	feepool := terraApp.Keepers.DistrKeeper.FeePool
+	err = feepool.Set(ctx, distrtypes.InitialFeePool())
 	if err != nil {
 		panic(err)
 	}

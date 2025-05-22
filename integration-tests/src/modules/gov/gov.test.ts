@@ -1,4 +1,4 @@
-import { getLCDClient, blockInclusion, votingPeriod, getMnemonics } from "../../helpers";
+import { getLCDClient, blockInclusion, votingPeriod, getMnemonics, getValueByIndexAndTypeAndKey } from "../../helpers";
 import { Coins, MsgVote, Fee, MsgSubmitProposal, Proposal, Int } from "@terra-money/feather.js";
 import { ProposalStatus, VoteOption } from "@terra-money/terra.proto/cosmos/gov/v1beta1/gov";
 
@@ -37,12 +37,23 @@ describe("Governance Module (https://github.com/terra-money/cosmos-sdk/tree/rele
                     "burn_proposal_deposit_prevote": false,
                     "burn_vote_quorum": false,
                     "burn_vote_veto": true,
+                    "expedited_min_deposit": [
+                        {
+                            "amount": "50000000",
+                            "denom": "uluna",
+                        },
+                    ],
+                    "expedited_threshold": "0.667000000000000000",
+                    "expedited_voting_period": "86400s",
                     "max_deposit_period": "172800s",
                     "min_deposit": [{
                         "amount": "10000000",
                         "denom": "uluna",
                     }],
+                    "min_deposit_ratio": "0.010000000000000000",
                     "min_initial_deposit_ratio": "0.000000000000000000",
+                    "proposal_cancel_dest": "",
+                    "proposal_cancel_ratio": "0.500000000000000000",
                     "quorum": "0.334000000000000000",
                     "threshold": "0.500000000000000000",
                     "veto_threshold": "0.334000000000000000",
@@ -66,12 +77,23 @@ describe("Governance Module (https://github.com/terra-money/cosmos-sdk/tree/rele
                     "burn_proposal_deposit_prevote": false,
                     "burn_vote_quorum": false,
                     "burn_vote_veto": true,
+                    "expedited_min_deposit": [
+                        {
+                            "amount": "50000000",
+                            "denom": "uluna",
+                        },
+                    ],
+                    "expedited_threshold": "0.667000000000000000",
+                    "expedited_voting_period": "86400s",
                     "max_deposit_period": "172800s",
                     "min_deposit": [{
                         "amount": "10000000",
                         "denom": "uluna",
                     }],
+                    "min_deposit_ratio": "0.010000000000000000",
                     "min_initial_deposit_ratio": "0.000000000000000000",
+                    "proposal_cancel_dest": "",
+                    "proposal_cancel_ratio": "0.500000000000000000",
                     "quorum": "0.334000000000000000",
                     "threshold": "0.500000000000000000",
                     "veto_threshold": "0.334000000000000000",
@@ -93,12 +115,23 @@ describe("Governance Module (https://github.com/terra-money/cosmos-sdk/tree/rele
                     "burn_proposal_deposit_prevote": false,
                     "burn_vote_quorum": false,
                     "burn_vote_veto": true,
+                    "expedited_min_deposit": [
+                        {
+                            "amount": "50000000",
+                            "denom": "uluna",
+                        },
+                    ],
+                    "expedited_threshold": "0.667000000000000000",
+                    "expedited_voting_period": "86400s",
                     "max_deposit_period": "172800s",
                     "min_deposit": [{
                         "amount": "10000000",
                         "denom": "uluna",
                     }],
+                    "min_deposit_ratio": "0.010000000000000000",
                     "min_initial_deposit_ratio": "0.000000000000000000",
+                    "proposal_cancel_dest": "",
+                    "proposal_cancel_ratio": "0.500000000000000000",
                     "quorum": "0.334000000000000000",
                     "threshold": "0.500000000000000000",
                     "veto_threshold": "0.334000000000000000",
@@ -127,12 +160,23 @@ describe("Governance Module (https://github.com/terra-money/cosmos-sdk/tree/rele
                     "burn_proposal_deposit_prevote": false,
                     "burn_vote_quorum": false,
                     "burn_vote_veto": true,
+                    "expedited_min_deposit": [
+                        {
+                            "amount": "50000000",
+                            "denom": "uluna",
+                        },
+                    ],
+                    "expedited_threshold": "0.667000000000000000",
+                    "expedited_voting_period": "86400s",
                     "max_deposit_period": "172800s",
                     "min_deposit": [{
                         "amount": "10000000",
                         "denom": "uluna",
                     }],
+                    "min_deposit_ratio": "0.010000000000000000",
                     "min_initial_deposit_ratio": "0.000000000000000000",
+                    "proposal_cancel_dest": "",
+                    "proposal_cancel_ratio": "0.500000000000000000",
                     "quorum": "0.334000000000000000",
                     "threshold": "0.500000000000000000",
                     "veto_threshold": "0.334000000000000000",
@@ -142,53 +186,44 @@ describe("Governance Module (https://github.com/terra-money/cosmos-sdk/tree/rele
     });
 
     test('Must submit an empty proposal on chain', async () => {
-        try {
-            const msgProposal = new MsgSubmitProposal(
-                [],
-                Coins.fromString("1000000000uluna"),
+        const msgProposal = new MsgSubmitProposal(
+            [],
+            Coins.fromString("1000000000uluna"),
+            val2WalletAddress,
+            "METADATA Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue",
+            "TITLE Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue",
+            "SUMMARY Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue"
+        );
+        // Create an alliance proposal sign and submit on chain-2
+        let tx = await val2Wallet.createAndSignTx({
+            msgs: [msgProposal],
+            chainID: "test-2",
+        });
+        let result = await LCD.chain2.tx.broadcastSync(tx, "test-2");
+        await blockInclusion();
+
+        // Check that the proposal was created successfully
+        let txResult = await LCD.chain2.tx.txInfo(result.txhash, "test-2") as any;
+        expect(txResult.code).toBe(0);
+
+        // Get the proposal id and validate exists
+        proposalId = Number(getValueByIndexAndTypeAndKey(txResult.events, 0, "submit_proposal", "proposal_id"));
+        expect(proposalId)
+
+        // Vote for the proposal
+        tx = await val2Wallet.createAndSignTx({
+            msgs: [new MsgVote(
+                proposalId,
                 val2WalletAddress,
-                "METADATA Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue",
-                "TITLE Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue",
-                "SUMMARY Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue"
-            );
-            // Create an alliance proposal sign and submit on chain-2
-            let tx = await val2Wallet.createAndSignTx({
-                msgs: [msgProposal],
-                chainID: "test-2",
-            });
-            let result = await LCD.chain2.tx.broadcastSync(tx, "test-2");
-            await blockInclusion();
-
-            // Check that the proposal was created successfully
-            let txResult = await LCD.chain2.tx.txInfo(result.txhash, "test-2") as any;
-            expect(txResult.code).toBe(0);
-
-            // Get the proposal id and validate exists
-            proposalId = Number(txResult.logs[0].eventsByType.submit_proposal.proposal_id[0]);
-            expect(proposalId)
-
-            // Vote for the proposal
-            tx = await val2Wallet.createAndSignTx({
-                msgs: [new MsgVote(
-                    proposalId,
-                    val2WalletAddress,
-                    VoteOption.VOTE_OPTION_YES
-                )],
-                fee: new Fee(100_000, "100000uluna"),
-                chainID: "test-2",
-            });
-            result = await LCD.chain2.tx.broadcastSync(tx, "test-2");
-            await votingPeriod();
-            txResult = await LCD.chain2.tx.txInfo(result.txhash, "test-2")
-            expect(txResult.code).toBe(0);
-        }
-        catch (e: any) {
-            expect(e.response.data.message).toContain("alliance asset already exists");
-        }
-
-        // Query the alliance and check if it exists
-        const res = await LCD.chain2.gov.proposals("test-2");
-        expect(res).toBeDefined();
+                VoteOption.VOTE_OPTION_YES
+            )],
+            fee: new Fee(100_000, "100000uluna"),
+            chainID: "test-2",
+        });
+        result = await LCD.chain2.tx.broadcastSync(tx, "test-2");
+        await votingPeriod();
+        txResult = await LCD.chain2.tx.txInfo(result.txhash, "test-2")
+        expect(txResult.code).toBe(0);
     });
 
     describe("After submitting the proposal on chain", () => {

@@ -1,5 +1,5 @@
 import { AccAddress, Coin, MsgTransfer, MsgSend, Coins } from "@terra-money/feather.js";
-import { blockInclusion, getLCDClient, getMnemonics } from "../../helpers";
+import { blockInclusion, getEventsByIndex, getLCDClient, getMnemonics } from "../../helpers";
 import { MsgRegisterInterchainAccount, MsgSendTx } from "@terra-money/feather.js/dist/core/ica/controller/v1/msgs";
 import { Height } from "@terra-money/feather.js/dist/core/ibc/core/client/Height";
 import Long from "long";
@@ -206,25 +206,38 @@ describe("ICA Module (https://github.com/cosmos/ibc-go/tree/release/v7.3.x/modul
 
             let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
             await blockInclusion();
+            await blockInclusion();
             let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
-            const events = txResult.logs[0].events;
+            const events = getEventsByIndex(txResult.events, 0);
+            console.log(JSON.stringify(events, null, 2));
             expect(events[0])
                 .toStrictEqual({
                     "type": "message",
                     "attributes": [{
+                        "index": true,
                         "key": "action",
                         "value": "/ibc.applications.interchain_accounts.controller.v1.MsgSendTx"
                     }, {
+                        "index": true,
                         "key": "sender",
                         "value": "terra1p4kcrttuxj9kyyvv5px5ccgwf0yrw74yp7jqm6"
+                    }, {
+                        "index": true,
+                        "key": "msg_index",
+                        "value": "0"
                     }]
                 });
             expect(events[2])
                 .toStrictEqual({
                     "type": "message",
                     "attributes": [{
+                        "index": true,
                         "key": "module",
                         "value": "ibc_channel"
+                    }, {
+                        "index": true,
+                        "key": "msg_index",
+                        "value": "0"
                     }]
                 })
 

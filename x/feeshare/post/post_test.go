@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	errorsmod "cosmossdk.io/errors"
+	math "cosmossdk.io/math"
+
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/mock/gomock"
 
@@ -98,12 +100,12 @@ func (suite *AnteTestSuite) TestGetWithdrawalAddressFromContract() {
 }
 
 func (suite *AnteTestSuite) TestCalculateFee() {
-	feeCoins := sdk.NewCoins(sdk.NewCoin("uluna", sdk.NewInt(500)), sdk.NewCoin("utoken", sdk.NewInt(250)))
+	feeCoins := sdk.NewCoins(sdk.NewCoin("uluna", math.NewInt(500)), sdk.NewCoin("utoken", math.NewInt(250)))
 
 	testCases := []struct {
 		name               string
 		incomingFee        sdk.Coins
-		devShares          sdk.Dec
+		devShares          math.LegacyDec
 		numOfdevs          int
 		allowdDenoms       []string
 		expectedFeePayment sdk.Coins
@@ -111,71 +113,71 @@ func (suite *AnteTestSuite) TestCalculateFee() {
 		{
 			"100% fee / 1 contract",
 			feeCoins,
-			sdk.NewDecWithPrec(100, 2),
+			math.LegacyNewDecWithPrec(100, 2),
 			1,
 			[]string{},
-			sdk.NewCoins(sdk.NewCoin("uluna", sdk.NewInt(500)), sdk.NewCoin("utoken", sdk.NewInt(250))),
+			sdk.NewCoins(sdk.NewCoin("uluna", math.NewInt(500)), sdk.NewCoin("utoken", math.NewInt(250))),
 		},
 		{
 			"100% fee / 2 contracts",
 			feeCoins,
-			sdk.NewDecWithPrec(100, 2),
+			math.LegacyNewDecWithPrec(100, 2),
 			2,
 			[]string{},
-			sdk.NewCoins(sdk.NewCoin("uluna", sdk.NewInt(250)), sdk.NewCoin("utoken", sdk.NewInt(125))),
+			sdk.NewCoins(sdk.NewCoin("uluna", math.NewInt(250)), sdk.NewCoin("utoken", math.NewInt(125))),
 		},
 		{
 			"100% fee / 10 contracts / 1 allowed denom",
 			feeCoins,
-			sdk.NewDecWithPrec(100, 2),
+			math.LegacyNewDecWithPrec(100, 2),
 			10,
 			[]string{"uluna"},
-			sdk.NewCoins(sdk.NewCoin("uluna", sdk.NewInt(50))),
+			sdk.NewCoins(sdk.NewCoin("uluna", math.NewInt(50))),
 		},
 		{
 			"67% fee / 7 contracts",
 			feeCoins,
-			sdk.NewDecWithPrec(67, 2),
+			math.LegacyNewDecWithPrec(67, 2),
 			7,
 			[]string{},
-			sdk.NewCoins(sdk.NewCoin("uluna", sdk.NewInt(48)), sdk.NewCoin("utoken", sdk.NewInt(24))),
+			sdk.NewCoins(sdk.NewCoin("uluna", math.NewInt(48)), sdk.NewCoin("utoken", math.NewInt(24))),
 		},
 		{
 			"50% fee / 1 contracts / 1 allowed denom",
 			feeCoins,
-			sdk.NewDecWithPrec(50, 2),
+			math.LegacyNewDecWithPrec(50, 2),
 			1,
 			[]string{"utoken"},
-			sdk.NewCoins(sdk.NewCoin("utoken", sdk.NewInt(125))),
+			sdk.NewCoins(sdk.NewCoin("utoken", math.NewInt(125))),
 		},
 		{
 			"50% fee / 2 contracts / 2 allowed denoms",
 			feeCoins,
-			sdk.NewDecWithPrec(50, 2),
+			math.LegacyNewDecWithPrec(50, 2),
 			2,
 			[]string{"uluna", "utoken"},
-			sdk.NewCoins(sdk.NewCoin("uluna", sdk.NewInt(125)), sdk.NewCoin("utoken", sdk.NewInt(62))),
+			sdk.NewCoins(sdk.NewCoin("uluna", math.NewInt(125)), sdk.NewCoin("utoken", math.NewInt(62))),
 		},
 		{
 			"50% fee / 3 contracts",
 			feeCoins,
-			sdk.NewDecWithPrec(50, 2),
+			math.LegacyNewDecWithPrec(50, 2),
 			3,
 			[]string{},
-			sdk.NewCoins(sdk.NewCoin("uluna", sdk.NewInt(83)), sdk.NewCoin("utoken", sdk.NewInt(42))),
+			sdk.NewCoins(sdk.NewCoin("uluna", math.NewInt(83)), sdk.NewCoin("utoken", math.NewInt(42))),
 		},
 		{
 			"25% fee / 2 contracts",
 			feeCoins,
-			sdk.NewDecWithPrec(25, 2),
+			math.LegacyNewDecWithPrec(25, 2),
 			2,
 			[]string{},
-			sdk.NewCoins(sdk.NewCoin("uluna", sdk.NewInt(62)), sdk.NewCoin("utoken", sdk.NewInt(31))),
+			sdk.NewCoins(sdk.NewCoin("uluna", math.NewInt(62)), sdk.NewCoin("utoken", math.NewInt(31))),
 		},
 		{
 			"15% fee / 3 contracts / inexistent denom",
 			feeCoins,
-			sdk.NewDecWithPrec(15, 2),
+			math.LegacyNewDecWithPrec(15, 2),
 			3,
 			[]string{"ubtc"},
 			sdk.Coins(nil),
@@ -183,10 +185,10 @@ func (suite *AnteTestSuite) TestCalculateFee() {
 		{
 			"1% fee / 2 contracts",
 			feeCoins,
-			sdk.NewDecWithPrec(1, 2),
+			math.LegacyNewDecWithPrec(1, 2),
 			2,
 			[]string{},
-			sdk.NewCoins(sdk.NewCoin("uluna", sdk.NewInt(2)), sdk.NewCoin("utoken", sdk.NewInt(1))),
+			sdk.NewCoins(sdk.NewCoin("uluna", math.NewInt(2)), sdk.NewCoin("utoken", math.NewInt(1))),
 		},
 	}
 
@@ -216,7 +218,7 @@ func (suite *AnteTestSuite) TestPostHandler() {
 	})
 
 	// build a tx with a fee amount ...
-	txFee := sdk.NewCoins(sdk.NewCoin("uluna", sdk.NewInt(500)), sdk.NewCoin("utoken", sdk.NewInt(250)))
+	txFee := sdk.NewCoins(sdk.NewCoin("uluna", math.NewInt(500)), sdk.NewCoin("utoken", math.NewInt(250)))
 	txBuilder := suite.EncodingConfig.TxConfig.NewTxBuilder()
 	txBuilder.SetFeeAmount(txFee)
 	txBuilder.SetMsgs(&wasmtypes.MsgExecuteContract{
@@ -301,13 +303,13 @@ func (suite *AnteTestSuite) TestDisabledPostHandle() {
 	// Disable the feeshare module...
 	err := suite.App.Keepers.FeeShareKeeper.SetParams(suite.Ctx, types.Params{
 		EnableFeeShare:  false,
-		DeveloperShares: sdk.MustNewDecFromStr("0.5"),
+		DeveloperShares: math.LegacyMustNewDecFromStr("0.5"),
 		AllowedDenoms:   []string{},
 	})
 	suite.Require().NoError(err)
 
 	// build a tx with a fee amount ...
-	txFee := sdk.NewCoins(sdk.NewCoin("uluna", sdk.NewInt(500)), sdk.NewCoin("utoken", sdk.NewInt(250)))
+	txFee := sdk.NewCoins(sdk.NewCoin("uluna", math.NewInt(500)), sdk.NewCoin("utoken", math.NewInt(250)))
 	txBuilder := suite.EncodingConfig.TxConfig.NewTxBuilder()
 	txBuilder.SetFeeAmount(txFee)
 	txBuilder.SetMsgs(&wasmtypes.MsgExecuteContract{})
@@ -389,7 +391,7 @@ func (suite *AnteTestSuite) TestPostHandlerWithEmptySmartContractStore() {
 	})
 
 	// build a tx with a fee amount ...
-	txFee := sdk.NewCoins(sdk.NewCoin("uluna", sdk.NewInt(500)), sdk.NewCoin("utoken", sdk.NewInt(250)))
+	txFee := sdk.NewCoins(sdk.NewCoin("uluna", math.NewInt(500)), sdk.NewCoin("utoken", math.NewInt(250)))
 	txBuilder := suite.EncodingConfig.TxConfig.NewTxBuilder()
 	txBuilder.SetFeeAmount(txFee)
 	txBuilder.SetMsgs(&wasmtypes.MsgExecuteContract{
@@ -443,7 +445,7 @@ func (suite *AnteTestSuite) TestPostHandlerNoSmartContractExecuted() {
 	})
 
 	// build a tx with a fee amount ...
-	txFee := sdk.NewCoins(sdk.NewCoin("uluna", sdk.NewInt(500)), sdk.NewCoin("utoken", sdk.NewInt(250)))
+	txFee := sdk.NewCoins(sdk.NewCoin("uluna", math.NewInt(500)), sdk.NewCoin("utoken", math.NewInt(250)))
 	txBuilder := suite.EncodingConfig.TxConfig.NewTxBuilder()
 	txBuilder.SetFeeAmount(txFee)
 	txBuilder.SetMsgs(&wasmtypes.MsgExecuteContract{
@@ -497,7 +499,7 @@ func (suite *AnteTestSuite) TestPostHandlerWithInvalidContractAddrOnExecution() 
 	})
 
 	// build a tx with a fee amount ...
-	txFee := sdk.NewCoins(sdk.NewCoin("uluna", sdk.NewInt(500)), sdk.NewCoin("utoken", sdk.NewInt(250)))
+	txFee := sdk.NewCoins(sdk.NewCoin("uluna", math.NewInt(500)), sdk.NewCoin("utoken", math.NewInt(250)))
 	txBuilder := suite.EncodingConfig.TxConfig.NewTxBuilder()
 	txBuilder.SetFeeAmount(txFee)
 	txBuilder.SetMsgs(&wasmtypes.MsgExecuteContract{})

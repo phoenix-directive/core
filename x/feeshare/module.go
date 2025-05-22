@@ -98,6 +98,14 @@ func (AppModuleBasic) GetQueryCmd() *cobra.Command {
 	return cli.GetQueryCmd()
 }
 
+// IsAppModule implements module.AppModule.
+func (am AppModule) IsAppModule() {
+}
+
+// IsOnePerModuleType implements module.AppModule.
+func (am AppModule) IsOnePerModuleType() {
+}
+
 // ___________________________________________________________________________
 
 // AppModule implements the AppModule interface for the fees module.
@@ -132,11 +140,6 @@ func (AppModule) Name() string {
 // RegisterInvariants registers the fees module's invariants.
 func (am AppModule) RegisterInvariants(_ sdk.InvariantRegistry) {}
 
-// NewHandler returns nil - fees module doesn't expose tx gRPC endpoints
-func (am AppModule) NewHandler() sdk.Handler {
-	return nil
-}
-
 // QuerierRoute returns the claim module's query routing key.
 func (am AppModule) QuerierRoute() string {
 	return types.RouterKey
@@ -155,12 +158,12 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 }
 
 // BeginBlock executes all ABCI BeginBlock logic respective to the fees module.
-func (am AppModule) BeginBlock(_ sdk.Context, _ abci.RequestBeginBlock) {
+func (am AppModule) BeginBlock(_ sdk.Context) {
 }
 
 // EndBlock executes all ABCI EndBlock logic respective to the fee-share module. It
 // returns no validator updates.
-func (am AppModule) EndBlock(_ sdk.Context, _ abci.RequestEndBlock) []abci.ValidatorUpdate {
+func (am AppModule) EndBlock(_ sdk.Context) []abci.ValidatorUpdate {
 	return []abci.ValidatorUpdate{}
 }
 
@@ -193,11 +196,11 @@ func (am AppModule) ProposalContents(_ module.SimulationState) []simtypes.Weight
 	return []simtypes.WeightedProposalMsg{}
 }
 
-// RegisterStoreDecoder registers a decoder for fees module's types.
-func (am AppModule) RegisterStoreDecoder(_ sdk.StoreDecoderRegistry) {
-}
-
 // WeightedOperations returns fees module weighted operations
 func (am AppModule) WeightedOperations(_ module.SimulationState) []simtypes.WeightedOperation {
 	return []simtypes.WeightedOperation{}
+}
+
+// RegisterStoreDecoder implements module.AppModuleSimulation.
+func (am AppModule) RegisterStoreDecoder(simtypes.StoreDecoderRegistry) {
 }

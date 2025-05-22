@@ -1,21 +1,22 @@
 package v2_6
 
 import (
+	"context"
 	"time"
 
 	sdkerrors "cosmossdk.io/errors"
-	clientkeeper "github.com/cosmos/ibc-go/v7/modules/core/02-client/keeper"
-	ibcclienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
-	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
-	ibctm "github.com/cosmos/ibc-go/v7/modules/light-clients/07-tendermint"
+	clientkeeper "github.com/cosmos/ibc-go/v8/modules/core/02-client/keeper"
+	ibcclienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
+	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
+	ibctm "github.com/cosmos/ibc-go/v8/modules/light-clients/07-tendermint"
 	feesharekeeper "github.com/terra-money/core/v2/x/feeshare/keeper"
 	feesharetypes "github.com/terra-money/core/v2/x/feeshare/types"
 
+	upgradetypes "cosmossdk.io/x/upgrade/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
-	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
 )
 
 func CreateUpgradeHandler(
@@ -26,16 +27,17 @@ func CreateUpgradeHandler(
 	authKeeper authkeeper.AccountKeeper,
 	feesharekeeper feesharekeeper.Keeper,
 ) upgradetypes.UpgradeHandler {
-	return func(ctx sdk.Context, _ upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+	return func(ctx context.Context, _ upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+		sdkCtx := sdk.UnwrapSDKContext(ctx)
 		// feeshare module is a new module added in v2.6,
 		// we need to set the default params
-		err := feesharekeeper.SetParams(ctx, feesharetypes.DefaultParams())
+		err := feesharekeeper.SetParams(sdkCtx, feesharetypes.DefaultParams())
 		if err != nil {
 			return nil, err
 		}
 
 		// Increase the unbonding period for atlantic-2
-		err = increaseUnbondingPeriod(ctx, cdc, clientKeeper)
+		err = increaseUnbondingPeriod(sdkCtx, cdc, clientKeeper)
 		if err != nil {
 			return nil, err
 		}

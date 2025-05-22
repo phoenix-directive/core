@@ -1,10 +1,12 @@
 package keeper
 
 import (
+	"context"
+
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 
+	corestoretypes "cosmossdk.io/core/store"
 	"github.com/cosmos/cosmos-sdk/codec"
-	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/CosmWasm/wasmd/x/wasm/types"
@@ -15,13 +17,13 @@ var _ keepertypes.KeeperInterface = Keeper{}
 
 type Keeper struct {
 	*wasmkeeper.Keeper
-	storeKey storetypes.StoreKey
-	cdc      codec.Codec
+	storeService corestoretypes.KVStoreService
+	cdc          codec.Codec
 }
 
 func NewKeeper(
 	cdc codec.Codec,
-	storeKey storetypes.StoreKey,
+	storeService corestoretypes.KVStoreService,
 	accountKeeper types.AccountKeeper,
 	bankKeeper types.BankKeeper,
 	stakingKeeper types.StakingKeeper,
@@ -34,14 +36,15 @@ func NewKeeper(
 	router wasmkeeper.MessageRouter,
 	grpcQueryRouter wasmkeeper.GRPCQueryRouter,
 	homeDir string,
-	wasmConfig types.WasmConfig,
-	availableCapabilities string,
+	nodeConfig types.NodeConfig,
+	vmConfig types.VMConfig,
+	availableCapabilities []string,
 	authority string,
 	opts ...wasmkeeper.Option,
 ) Keeper {
 	keeper := wasmkeeper.NewKeeper(
 		cdc,
-		storeKey,
+		storeService,
 		accountKeeper,
 		bankKeeper,
 		stakingKeeper,
@@ -54,16 +57,17 @@ func NewKeeper(
 		router,
 		grpcQueryRouter,
 		homeDir,
-		wasmConfig,
+		nodeConfig,
+		vmConfig,
 		availableCapabilities,
 		authority,
 		opts...,
 	)
 
 	return Keeper{
-		Keeper:   &keeper,
-		storeKey: storeKey,
-		cdc:      cdc,
+		Keeper:       &keeper,
+		storeService: storeService,
+		cdc:          cdc,
 	}
 }
 
@@ -72,8 +76,9 @@ func NewKeeper(
 // a store already then check if the contract address
 // exists in the list, if not then update the store,
 // If the contract does not exist in the store, add it.
-func (k Keeper) AfterExecuteContract(ctx sdk.Context, msg *types.MsgExecuteContract, res *types.MsgExecuteContractResponse) error {
-	contracts, found := k.GetExecutedContractAddresses(ctx)
+func (k Keeper) AfterExecuteContract(ctx context.Context, msg *types.MsgExecuteContract, res *types.MsgExecuteContractResponse) error {
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	contracts, found := k.GetExecutedContractAddresses(sdkCtx)
 
 	if found {
 		for _, contract := range contracts.ContractAddresses {
@@ -85,7 +90,7 @@ func (k Keeper) AfterExecuteContract(ctx sdk.Context, msg *types.MsgExecuteContr
 
 	contracts.ContractAddresses = append(contracts.ContractAddresses, msg.Contract)
 
-	err := k.SetExecutedContractAddresses(ctx, contracts)
+	err := k.SetExecutedContractAddresses(sdkCtx, contracts)
 	if err != nil {
 		return err
 	}

@@ -4,8 +4,9 @@ import { StakeAuthorization, MsgGrantAuthorization, AuthorizationGrant, Coin, Ms
 import { AuthorizationType } from "@terra-money/terra.proto/cosmos/staking/v1beta1/authz";
 import moment from "moment";
 import { blockInclusion } from "../../helpers/const";
+import { getEventsByIndex } from "../../helpers";
 
-describe("Authz Module (https://github.com/terra-money/cosmos-sdk/tree/release/v0.47.x/x/authz)", () => {
+describe("Authz Module", () => {
     const LCD = getLCDClient();
     const accounts = getMnemonics();
     // Accounts used in chain2, which means that 
@@ -36,30 +37,45 @@ describe("Authz Module (https://github.com/terra-money/cosmos-sdk/tree/release/v
 
         // Check the MsgGrantAuthorization executed as expected 
         let txResult = await LCD.chain2.tx.txInfo(result.txhash, "test-2") as any;
-        expect(txResult.logs[0].events)
+        const events = getEventsByIndex(txResult.events, 0);
+        expect(events)
             .toStrictEqual([{
                 "type": "message",
                 "attributes": [{
+                    "index": true,
                     "key": "action",
                     "value": "/cosmos.authz.v1beta1.MsgGrant"
                 }, {
+                    "index": true,
                     "key": "sender",
                     "value": "terra120rzk7n6cd2vufkmwrat34adqh0rgca9tkyfe5"
                 }, {
+                    "index": true,
                     "key": "module",
                     "value": "authz"
+                }, {
+                    "index": true,
+                    "key": "msg_index",
+                    "value": "0"
                 }]
             }, {
                 "type": "cosmos.authz.v1beta1.EventGrant",
                 "attributes": [{
+                    "index": true,
                     "key": "grantee",
                     "value": "\"terra1v0eee20gjl68fuk0chyrkch2z7suw2mhg3wkxf\""
                 }, {
+                    "index": true,
                     "key": "granter",
                     "value": "\"terra120rzk7n6cd2vufkmwrat34adqh0rgca9tkyfe5\""
                 }, {
+                    "index": true,
                     "key": "msg_type_url",
                     "value": "\"/cosmos.staking.v1beta1.MsgDelegate\""
+                }, {
+                    "index": true,
+                    "key": "msg_index",
+                    "value": "0"
                 }]
             }]);
     });
@@ -81,55 +97,78 @@ describe("Authz Module (https://github.com/terra-money/cosmos-sdk/tree/release/v
             await blockInclusion();
 
             let txResult = await LCD.chain2.tx.txInfo(result.txhash, "test-2") as any;
-            let eventsList = txResult.logs[0].events;
-            let latestIndex = eventsList.length - 1;
+            const events = getEventsByIndex(txResult.events, 0);
+            let latestIndex = events.length - 1;
 
-            expect(eventsList[0])
+            expect(events[0])
                 .toStrictEqual({
                     "type": "message",
                     "attributes": [{
+                        "index": true,
                         "key": "action",
                         "value": "/cosmos.authz.v1beta1.MsgExec"
                     }, {
+                        "index": true,
                         "key": "sender",
                         "value": "terra1v0eee20gjl68fuk0chyrkch2z7suw2mhg3wkxf"
                     }, {
+                        "index": true,
                         "key": "module",
                         "value": "authz"
+                    }, {
+                        "index": true,
+                        "key": "msg_index",
+                        "value": "0"
                     }]
                 });
-            expect(eventsList[1])
+            expect(events[1])
                 .toStrictEqual({
-                        "type": "cosmos.authz.v1beta1.EventRevoke",
-                        "attributes": [{
-                            "key": "grantee",
-                            "value": "\"terra1v0eee20gjl68fuk0chyrkch2z7suw2mhg3wkxf\""
-                        }, {
-                            "key": "granter",
-                            "value": "\"terra120rzk7n6cd2vufkmwrat34adqh0rgca9tkyfe5\""
-                        }, {
-                            "key": "msg_type_url",
-                            "value": "\"/cosmos.staking.v1beta1.MsgDelegate\""
-                        }]
-                    });
+                    "type": "cosmos.authz.v1beta1.EventRevoke",
+                    "attributes": [{
+                        "index": true,
+                        "key": "grantee",
+                        "value": "\"terra1v0eee20gjl68fuk0chyrkch2z7suw2mhg3wkxf\""
+                    }, {
+                        "index": true,
+                        "key": "granter",
+                        "value": "\"terra120rzk7n6cd2vufkmwrat34adqh0rgca9tkyfe5\""
+                    }, {
+                        "index": true,
+                        "key": "msg_type_url",
+                        "value": "\"/cosmos.staking.v1beta1.MsgDelegate\""
+                    }, {
+                        "index": true,
+                        "key": "msg_index",
+                        "value": "0"
+                    }]
+                });
 
-            expect(eventsList[latestIndex])
+            expect(events[latestIndex])
                 .toStrictEqual({
                     "type": "delegate",
                     "attributes": [{
+                        "index": true,
                         "key": "validator",
                         "value": "terravaloper1llgzglr9yyy4gyjh8p5kepgm5wyl358de47rqk"
                     }, {
+                        "index": true,
                         "key": "delegator",
                         "value": "terra120rzk7n6cd2vufkmwrat34adqh0rgca9tkyfe5"
                     }, {
+                        "index": true,
                         "key": "amount",
                         "value": "1000000uluna"
                     }, {
+                        "index": true,
                         "key": "new_shares",
                         "value": "1000000.000000000000000000"
                     }, {
+                        "index": true,
                         "key": "authz_msg_index",
+                        "value": "0"
+                    }, {
+                        "index": true,
+                        "key": "msg_index",
                         "value": "0"
                     }]
                 });

@@ -3,11 +3,11 @@ package app
 import (
 	"encoding/json"
 
-	icqtypes "github.com/cosmos/ibc-apps/modules/async-icq/v7/types"
-	icacontrollertypes "github.com/cosmos/ibc-go/v7/modules/apps/27-interchain-accounts/controller/types"
-	icagenesistypes "github.com/cosmos/ibc-go/v7/modules/apps/27-interchain-accounts/genesis/types"
-	icahosttypes "github.com/cosmos/ibc-go/v7/modules/apps/27-interchain-accounts/host/types"
-	icatypes "github.com/cosmos/ibc-go/v7/modules/apps/27-interchain-accounts/types"
+	icqtypes "github.com/cosmos/ibc-apps/modules/async-icq/v8/types"
+	icacontrollertypes "github.com/cosmos/ibc-go/v8/modules/apps/27-interchain-accounts/controller/types"
+	icagenesistypes "github.com/cosmos/ibc-go/v8/modules/apps/27-interchain-accounts/genesis/types"
+	icahosttypes "github.com/cosmos/ibc-go/v8/modules/apps/27-interchain-accounts/host/types"
+	icatypes "github.com/cosmos/ibc-go/v8/modules/apps/27-interchain-accounts/types"
 	"github.com/terra-money/core/v2/app/config"
 	tokenfactorytypes "github.com/terra-money/core/v2/x/tokenfactory/types"
 
@@ -18,6 +18,8 @@ import (
 	govtypesv1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+
+	"cosmossdk.io/math"
 )
 
 // GenesisState - The genesis state of the blockchain is represented here as a map of raw json
@@ -59,7 +61,7 @@ func (genState GenesisState) SetDefaultTerraConfig(cdc codec.JSONCodec) GenesisS
 
 	var tokenFactoryGenState tokenfactorytypes.GenesisState
 	cdc.MustUnmarshalJSON(genState[tokenfactorytypes.ModuleName], &tokenFactoryGenState)
-	tokenFactoryGenState.Params.DenomCreationFee = sdk.NewCoins(sdk.NewCoin(config.BondDenom, sdk.NewInt(10000000)))
+	tokenFactoryGenState.Params.DenomCreationFee = sdk.NewCoins(sdk.NewCoin(config.BondDenom, math.NewInt(10000000)))
 	genState[tokenfactorytypes.ModuleName] = cdc.MustMarshalJSON(&tokenFactoryGenState)
 
 	var icqGenState icqtypes.GenesisState
