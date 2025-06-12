@@ -18,11 +18,11 @@ require (
 	cosmossdk.io/x/feegrant v0.1.1
 	cosmossdk.io/x/tx v0.13.8
 	cosmossdk.io/x/upgrade v0.1.4
-	github.com/CosmWasm/wasmd v0.54.0
-	github.com/CosmWasm/wasmvm/v2 v2.2.3
+	github.com/CosmWasm/wasmd v0.54.1
+	github.com/CosmWasm/wasmvm/v2 v2.2.4
 	github.com/cometbft/cometbft v0.38.17
 	github.com/cometbft/cometbft-db v0.14.1 // indirect
-	github.com/cosmos/btcutil v1.0.5 // indirect
+	github.com/cosmos/btcutil v1.0.5
 	github.com/cosmos/cosmos-db v1.1.1
 	github.com/cosmos/cosmos-proto v1.0.0-beta.5
 	github.com/cosmos/cosmos-sdk v0.50.13
@@ -35,7 +35,7 @@ require (
 	github.com/cosmos/ibc-go/modules/capability v1.0.1
 	github.com/cosmos/ibc-go/v8 v8.5.2
 	github.com/cosmos/ledger-cosmos-go v0.14.0 // indirect
-	github.com/golang/mock v1.6.0
+	github.com/golang/mock v1.6.0 // indirect
 	github.com/golang/protobuf v1.5.4
 	github.com/gorilla/mux v1.8.1
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
@@ -51,6 +51,11 @@ require (
 	go.uber.org/mock v0.4.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20241202173237-19429a94021a
 	google.golang.org/grpc v1.70.0
+)
+
+require (
+	github.com/hashicorp/go-metrics v0.5.3
+	golang.org/x/crypto v0.32.0
 )
 
 require (
@@ -135,7 +140,6 @@ require (
 	github.com/hashicorp/go-getter v1.7.5 // indirect
 	github.com/hashicorp/go-hclog v1.6.3 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
-	github.com/hashicorp/go-metrics v0.5.3 // indirect
 	github.com/hashicorp/go-plugin v1.6.1 // indirect
 	github.com/hashicorp/go-safetemp v1.0.0 // indirect
 	github.com/hashicorp/go-version v1.6.0 // indirect
@@ -202,7 +206,6 @@ require (
 	go.opentelemetry.io/otel/trace v1.32.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.0.0-20210923205945-b76863e36670 // indirect
-	golang.org/x/crypto v0.32.0 // indirect
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
 	golang.org/x/net v0.34.0 // indirect
 	golang.org/x/oauth2 v0.24.0 // indirect
