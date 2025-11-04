@@ -20,7 +20,7 @@ For a bug that is non-sensitive and/or operational in nature rather than a criti
 
 ## Critical bug or security issue 💥
 
-If you're here because you're trying to figure out how to notify us of a security issue, use [this link](https://www.terra.money/bugcrowd) to submit your report
+If you're here because you're trying to figure out how to notify us of a security issue, contact security@phoenix.money to submit your report
 
 Please avoid opening public issues on GitHub that contain information about a potential security vulnerability as this makes it difficult to reduce the impact and harm of valid security issues.
 
