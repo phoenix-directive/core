@@ -4,16 +4,17 @@
   "description": "Integration tests for Core using feather.js",
   "main": "index.ts",
   "scripts": {
-    "test:init" : "bash src/setup/init-test-framework.sh",
+    "test:init": "bash src/setup/init-test-framework.sh",
     "test:relayer": "bash src/setup/relayer/init-relayer.sh",
-    "test:chain:upgrade" : "bash src/setup/chain-upgrade/chain-upgrade.sh",
-    "test:chain:upgrade:v12" : "bash src/setup/chain-upgrade/upgrade-simulation-12.sh",
-    "test:chain:upgrade:v13" : "bash src/setup/chain-upgrade/upgrade-simulation-13.sh",
-    "test:chain:upgrade:v14" : "bash src/setup/chain-upgrade/upgrade-simulation-14.sh",
-    "test:chain:upgrade:v15" : "bash src/setup/chain-upgrade/upgrade-simulation-15.sh",
-    "test:chain:upgrade:v16" : "bash src/setup/chain-upgrade/upgrade-simulation-16.sh",
-    "test:chain:upgrade:v17" : "bash src/setup/chain-upgrade/upgrade-simulation-17.sh",
-    "test:start" : "jest --runInBand --detectOpenHandles",
+    "test:chain:upgrade": "bash src/setup/chain-upgrade/chain-upgrade.sh",
+    "test:chain:upgrade:v12": "bash src/setup/chain-upgrade/upgrade-simulation-12.sh",
+    "test:chain:upgrade:v13": "bash src/setup/chain-upgrade/upgrade-simulation-13.sh",
+    "test:chain:upgrade:v14": "bash src/setup/chain-upgrade/upgrade-simulation-14.sh",
+    "test:chain:upgrade:v15": "bash src/setup/chain-upgrade/upgrade-simulation-15.sh",
+    "test:chain:upgrade:v16": "bash src/setup/chain-upgrade/upgrade-simulation-16.sh",
+    "test:chain:upgrade:v17": "bash src/setup/chain-upgrade/upgrade-simulation-17.sh",
+    "test:chain:upgrade:v18": "bash src/setup/chain-upgrade/upgrade-simulation-18.sh",
+    "test:start": "jest --runInBand --detectOpenHandles",
     "start": "npm run test:init && npm run test:relayer && npm run test:start",
     "test:clean": "rm -rf src/test-data chain-upgrade-data && pkill terrad && pkill terrad && pkill relayer"
   },
@@ -44,5 +45,6 @@
     "@terra-money/feather.js": "^2.1.0-beta.2",
     "moment": "^2.29.4",
     "long": "^5.3.1"
-  }
+  },
+  "packageManager": "yarn@1.22.19+sha1.4ba7fc5c6e704fce2066ecbfb0b0d8976fe62447"
 }
