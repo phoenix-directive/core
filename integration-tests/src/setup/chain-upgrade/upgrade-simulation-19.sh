@@ -1,12 +1,12 @@
 #!/bin/bash
 
-OLD_VERSION=release/v2.16
+OLD_VERSION=release/v2.18
 UPGRADE_HEIGHT=30
 CHAIN_ID=test-1
 CHAIN_HOME=$(pwd)/chain-upgrade-data
 CONTRACT_PATH=$(pwd)/src/contracts/counter.wasm
 DENOM=uluna
-SOFTWARE_UPGRADE_NAME="v2.17"
+SOFTWARE_UPGRADE_NAME="v2.19"
 GOV_PERIOD="3s"
 
 VAL_MNEMONIC_1="clock post desk civil pottery foster expand merit dash seminar song memory figure uniform spice circle try happy obvious trash crime hybrid hood cushion"
