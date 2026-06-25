@@ -160,6 +160,7 @@ func NewTerraApp(
 	app.mm = module.NewManager(appModules(app, encodingConfig, skipGenesisInvariants)...)
 
 	// NOTE: Any module instantiated in the module manager that is later modified
+	app.mm.SetOrderPreBlockers(preBlockersOrder...)
 	// must be passed by reference here.
 	app.mm.SetOrderBeginBlockers(beginBlockersOrder...)
 

@@ -196,6 +196,11 @@ var initGenesisOrder = []string{
 	icqtypes.ModuleName,
 }
 
+var preBlockersOrder = []string{
+	upgradetypes.ModuleName,
+	authtypes.ModuleName,
+}
+
 var beginBlockersOrder = []string{
 	upgradetypes.ModuleName,
 	capabilitytypes.ModuleName,
