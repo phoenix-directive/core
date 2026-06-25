@@ -8,7 +8,9 @@
     {
       "url": "./tmp-swagger-gen/alliance/alliance/query.swagger.json",
       "tags": {
-        "add": ["1.Alliance"]
+        "add": [
+          "1.Alliance"
+        ]
       },
       "operationIds": {
         "rename": {
@@ -18,8 +20,10 @@
     },
     {
       "url": "./tmp-swagger-gen/osmosis/tokenfactory/v1beta1/query.swagger.json",
-      "tags" : {
-        "add" : ["2.TokenFactory"]
+      "tags": {
+        "add": [
+          "2.TokenFactory"
+        ]
       },
       "operationIds": {
         "rename": {
@@ -29,8 +33,10 @@
     },
     {
       "url": "./tmp-swagger-gen/cosmwasm/wasm/v1/query.swagger.json",
-      "tags" : {
-        "add" : ["3.Wasm"]
+      "tags": {
+        "add": [
+          "3.Wasm"
+        ]
       },
       "operationIds": {
         "rename": {
@@ -40,8 +46,10 @@
     },
     {
       "url": "./tmp-swagger-gen/juno/feeshare/v1/query.swagger.json",
-      "tags" : {
-        "add" : ["4.Feeshare"]
+      "tags": {
+        "add": [
+          "4.Feeshare"
+        ]
       },
       "operationIds": {
         "rename": {
@@ -51,8 +59,10 @@
     },
     {
       "url": "./tmp-swagger-gen/ibc/applications/interchain_accounts/controller/v1/query.swagger.json",
-      "tags" : {
-        "add" : ["5.IBC"]
+      "tags": {
+        "add": [
+          "5.IBC"
+        ]
       },
       "operationIds": {
         "rename": {
@@ -62,18 +72,23 @@
     },
     {
       "url": "./tmp-swagger-gen/ibc/applications/interchain_accounts/host/v1/query.swagger.json",
-      "tags" : {
-        "add" : ["5.IBC"]
+      "tags": {
+        "add": [
+          "5.IBC"
+        ]
       },
       "operationIds": {
         "rename": {
           "Params": "ICAHost"
         }
       }
-    },{
+    },
+    {
       "url": "./tmp-swagger-gen/ibc/core/channel/v1/query.swagger.json",
-      "tags" : {
-        "add" : ["5.IBC"]
+      "tags": {
+        "add": [
+          "5.IBC"
+        ]
       },
       "operationIds": {
         "rename": {
@@ -83,8 +98,10 @@
     },
     {
       "url": "./tmp-swagger-gen/ibc/core/client/v1/query.swagger.json",
-      "tags" : {
-        "add" : ["5.IBC"]
+      "tags": {
+        "add": [
+          "5.IBC"
+        ]
       },
       "operationIds": {
         "rename": {
@@ -95,8 +112,10 @@
     },
     {
       "url": "./tmp-swagger-gen/ibc/core/connection/v1/query.swagger.json",
-      "tags" : {
-        "add" : ["5.IBC"]
+      "tags": {
+        "add": [
+          "5.IBC"
+        ]
       },
       "operationIds": {
         "rename": {
@@ -106,8 +125,10 @@
     },
     {
       "url": "./tmp-swagger-gen/ibc/applications/transfer/v1/query.swagger.json",
-      "tags" : {
-        "add" : ["5.IBC"]
+      "tags": {
+        "add": [
+          "5.IBC"
+        ]
       },
       "operationIds": {
         "rename": {
@@ -116,42 +137,11 @@
       }
     },
     {
-      "url": "./tmp-swagger-gen/ibc/applications/fee/v1/query.swagger.json",
-      "tags" : {
-        "add" : ["5.IBC"]
-      },
-      "operationIds": {
-        "rename": {
-          "Params": "IBCFee"
-        }
-      }
-    },
-    {
-      "url": "./tmp-swagger-gen/icq/v1/query.swagger.json",
-      "tags" : {
-        "add" : ["5.IBC"]
-      },
-      "operationIds": {
-        "rename": {
-          "Params": "ICQParams"
-        }
-      }
-    },
-    {
-      "url": "./tmp-swagger-gen/packetforward/v1/query.swagger.json",
-      "tags" : {
-        "add" : ["5.IBC"]
-      },
-      "operationIds": {
-        "rename": {
-          "Params": "IBCPacketforwardParams"
-        }
-      }
-    },
-    {
       "url": "./tmp-swagger-gen/cosmos/auth/v1beta1/query.swagger.json",
-      "tags" : {
-        "add" : ["Auth"]
+      "tags": {
+        "add": [
+          "Auth"
+        ]
       },
       "operationIds": {
         "rename": {
@@ -161,14 +151,18 @@
     },
     {
       "url": "./tmp-swagger-gen/cosmos/authz/v1beta1/query.swagger.json",
-      "tags" : {
-        "add" : ["Authz"]
+      "tags": {
+        "add": [
+          "Authz"
+        ]
       }
     },
     {
       "url": "./tmp-swagger-gen/cosmos/bank/v1beta1/query.swagger.json",
-      "tags" : {
-        "add" : ["Bank"]
+      "tags": {
+        "add": [
+          "Bank"
+        ]
       },
       "operationIds": {
         "rename": {
@@ -178,8 +172,10 @@
     },
     {
       "url": "./tmp-swagger-gen/cosmos/base/tendermint/v1beta1/query.swagger.json",
-      "tags" : {
-        "add" : ["Tendermint"]
+      "tags": {
+        "add": [
+          "Tendermint"
+        ]
       },
       "operationIds": {
         "rename": {
@@ -189,8 +185,10 @@
     },
     {
       "url": "./tmp-swagger-gen/cosmos/distribution/v1beta1/query.swagger.json",
-      "tags" : {
-        "add" : ["Distribution"]
+      "tags": {
+        "add": [
+          "Distribution"
+        ]
       },
       "operationIds": {
         "rename": {
@@ -200,8 +198,10 @@
     },
     {
       "url": "./tmp-swagger-gen/cosmos/evidence/v1beta1/query.swagger.json",
-      "tags" : {
-        "add" : ["Evidence"]
+      "tags": {
+        "add": [
+          "Evidence"
+        ]
       },
       "operationIds": {
         "rename": {
@@ -211,8 +211,10 @@
     },
     {
       "url": "./tmp-swagger-gen/cosmos/base/node/v1beta1/query.swagger.json",
-      "tags" : {
-        "add" : ["Node"]
+      "tags": {
+        "add": [
+          "Node"
+        ]
       },
       "operationIds": {
         "rename": {
@@ -222,28 +224,34 @@
     },
     {
       "url": "./tmp-swagger-gen/cosmos/feegrant/v1beta1/query.swagger.json",
-      "tags" : {
-        "add" : ["Feegrant"]
+      "tags": {
+        "add": [
+          "Feegrant"
+        ]
       }
     },
     {
       "url": "./tmp-swagger-gen/cosmos/gov/v1beta1/query.swagger.json",
-      "tags" : {
-        "add" : ["Gov"]
+      "tags": {
+        "add": [
+          "Gov"
+        ]
       },
       "operationIds": {
         "rename": {
           "Params": "GovParams",
           "Proposal": "GovProposal",
           "Tally": "GovTally",
-          "TallyResult" : "GovTallyResult"
+          "TallyResult": "GovTallyResult"
         }
       }
     },
     {
       "url": "./tmp-swagger-gen/cosmos/gov/v1/query.swagger.json",
-      "tags" : {
-        "add" : ["Gov"]
+      "tags": {
+        "add": [
+          "Gov"
+        ]
       },
       "operationIds": {
         "rename": {
@@ -259,9 +267,11 @@
       }
     },
     {
-      "url" : "./tmp-swagger-gen/cosmos/consensus/v1/query.swagger.json",
-      "tags" : {
-        "add" : ["Consensus"]
+      "url": "./tmp-swagger-gen/cosmos/consensus/v1/query.swagger.json",
+      "tags": {
+        "add": [
+          "Consensus"
+        ]
       },
       "operationIds": {
         "rename": {
@@ -271,8 +281,10 @@
     },
     {
       "url": "./tmp-swagger-gen/cosmos/group/v1/query.swagger.json",
-      "tags" : {
-        "add" : ["Group"]
+      "tags": {
+        "add": [
+          "Group"
+        ]
       },
       "operationIds": {
         "rename": {
@@ -282,8 +294,10 @@
     },
     {
       "url": "./tmp-swagger-gen/cosmos/mint/v1beta1/query.swagger.json",
-      "tags" : {
-        "add" : ["Mint"]
+      "tags": {
+        "add": [
+          "Mint"
+        ]
       },
       "operationIds": {
         "rename": {
@@ -293,8 +307,10 @@
     },
     {
       "url": "./tmp-swagger-gen/cosmos/params/v1beta1/query.swagger.json",
-      "tags" : {
-        "add" : ["Params"]
+      "tags": {
+        "add": [
+          "Params"
+        ]
       },
       "operationIds": {
         "rename": {
@@ -304,8 +320,10 @@
     },
     {
       "url": "./tmp-swagger-gen/cosmos/slashing/v1beta1/query.swagger.json",
-      "tags" : {
-        "add" : ["Slashing"]
+      "tags": {
+        "add": [
+          "Slashing"
+        ]
       },
       "operationIds": {
         "rename": {
@@ -315,8 +333,10 @@
     },
     {
       "url": "./tmp-swagger-gen/cosmos/staking/v1beta1/query.swagger.json",
-      "tags" : {
-        "add" : ["Staking"]
+      "tags": {
+        "add": [
+          "Staking"
+        ]
       },
       "operationIds": {
         "rename": {
@@ -327,8 +347,10 @@
     },
     {
       "url": "./tmp-swagger-gen/cosmos/tx/v1beta1/service.swagger.json",
-      "tags" : {
-        "add" : ["Tx"]
+      "tags": {
+        "add": [
+          "Tx"
+        ]
       },
       "dereference": {
         "circular": "ignore"
@@ -336,8 +358,10 @@
     },
     {
       "url": "./tmp-swagger-gen/cosmos/upgrade/v1beta1/query.swagger.json",
-      "tags" : {
-        "add" : ["Upgrade"]
+      "tags": {
+        "add": [
+          "Upgrade"
+        ]
       },
       "operationIds": {
         "rename": {

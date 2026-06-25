@@ -40,17 +40,15 @@ import (
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
-	"github.com/cosmos/ibc-apps/middleware/packet-forward-middleware/v8/packetforward"
-	packetforwardtypes "github.com/cosmos/ibc-apps/middleware/packet-forward-middleware/v8/packetforward/types"
-	icqtypes "github.com/cosmos/ibc-apps/modules/async-icq/v8/types"
-	ibchookstypes "github.com/cosmos/ibc-apps/modules/ibc-hooks/v8/types"
-	ica "github.com/cosmos/ibc-go/v8/modules/apps/27-interchain-accounts"
-	icatypes "github.com/cosmos/ibc-go/v8/modules/apps/27-interchain-accounts/types"
-	ibcfee "github.com/cosmos/ibc-go/v8/modules/apps/29-fee"
-	ibcfeetypes "github.com/cosmos/ibc-go/v8/modules/apps/29-fee/types"
-	ibctransfer "github.com/cosmos/ibc-go/v8/modules/apps/transfer"
-	ibctransfertypes "github.com/cosmos/ibc-go/v8/modules/apps/transfer/types"
-	ibc "github.com/cosmos/ibc-go/v8/modules/core"
+	"github.com/cosmos/ibc-apps/middleware/packet-forward-middleware/v10/packetforward"
+	packetforwardtypes "github.com/cosmos/ibc-apps/middleware/packet-forward-middleware/v10/packetforward/types"
+	ibchookstypes "github.com/cosmos/ibc-apps/modules/ibc-hooks/v10/types"
+	ica "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts"
+	icatypes "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/types"
+	ibctransfer "github.com/cosmos/ibc-go/v10/modules/apps/transfer"
+	ibctransfertypes "github.com/cosmos/ibc-go/v10/modules/apps/transfer/types"
+	ibc "github.com/cosmos/ibc-go/v10/modules/core"
+
 	alliancetypes "github.com/terra-money/alliance/x/alliance/types"
 	feesharetypes "github.com/terra-money/core/v2/x/feeshare/types"
 	tokenfactorytypes "github.com/terra-money/core/v2/x/tokenfactory/types"
@@ -60,14 +58,11 @@ import (
 	vestingtypes "github.com/cosmos/cosmos-sdk/x/auth/vesting/types"
 	consensusparamtypes "github.com/cosmos/cosmos-sdk/x/consensus/types"
 	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
-	capabilitytypes "github.com/cosmos/ibc-go/modules/capability/types"
 
-	icq "github.com/cosmos/ibc-apps/modules/async-icq/v8"
+	solomachine "github.com/cosmos/ibc-go/v10/modules/light-clients/06-solomachine"
+	ibctm "github.com/cosmos/ibc-go/v10/modules/light-clients/07-tendermint"
 
-	solomachine "github.com/cosmos/ibc-go/v8/modules/light-clients/06-solomachine"
-	ibctm "github.com/cosmos/ibc-go/v8/modules/light-clients/07-tendermint"
-
-	ibchooks "github.com/cosmos/ibc-apps/modules/ibc-hooks/v8"
+	ibchooks "github.com/cosmos/ibc-apps/modules/ibc-hooks/v10"
 
 	"github.com/CosmWasm/wasmd/x/wasm"
 	custombankmodule "github.com/terra-money/core/v2/x/bank"
@@ -78,7 +73,7 @@ import (
 	"github.com/terra-money/alliance/x/alliance"
 	feeshare "github.com/terra-money/core/v2/x/feeshare"
 
-	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
+	ibcexported "github.com/cosmos/ibc-go/v10/modules/core/exported"
 	terrappsparams "github.com/terra-money/core/v2/app/params"
 
 	"cosmossdk.io/x/feegrant"
@@ -108,7 +103,6 @@ var ModuleBasics = module.NewBasicManager(
 	ibctransfer.AppModuleBasic{},
 	vesting.AppModuleBasic{},
 	ica.AppModuleBasic{},
-	ibcfee.AppModuleBasic{},
 	packetforward.AppModuleBasic{},
 	authzmodule.AppModuleBasic{},
 	tokenfactory.AppModuleBasic{},
@@ -117,7 +111,6 @@ var ModuleBasics = module.NewBasicManager(
 	consensus.AppModuleBasic{},
 	alliance.AppModuleBasic{},
 	feeshare.AppModuleBasic{},
-	icq.AppModuleBasic{},
 )
 
 // NOTE: Any module instantiated in the module manager that is later modified
@@ -133,7 +126,6 @@ func appModules(app *TerraApp, encodingConfig terrappsparams.EncodingConfig, ski
 		auth.NewAppModule(app.appCodec, app.Keepers.AccountKeeper, nil, app.GetSubspace(authtypes.ModuleName)),
 		vesting.NewAppModule(app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.Keepers.DistrKeeper, app.Keepers.StakingKeeper),
 		custombankmodule.NewAppModule(app.appCodec, app.Keepers.BankKeeper, app.Keepers.AccountKeeper, app.GetSubspace(banktypes.ModuleName)),
-		capability.NewAppModule(app.appCodec, *app.Keepers.CapabilityKeeper, false),
 		crisis.NewAppModule(&app.Keepers.CrisisKeeper, skipGenesisInvariants, app.GetSubspace(crisistypes.ModuleName)),
 		feegrantmodule.NewAppModule(app.appCodec, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.Keepers.FeeGrantKeeper, app.interfaceRegistry),
 		gov.NewAppModule(app.appCodec, &app.Keepers.GovKeeper, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.GetSubspace(govtypes.ModuleName)),
@@ -148,7 +140,6 @@ func appModules(app *TerraApp, encodingConfig terrappsparams.EncodingConfig, ski
 		params.NewAppModule(app.Keepers.ParamsKeeper),
 		authzmodule.NewAppModule(app.appCodec, app.Keepers.AuthzKeeper, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.interfaceRegistry),
 		ibctransfer.NewAppModule(app.Keepers.TransferKeeper),
-		ibcfee.NewAppModule(app.Keepers.IBCFeeKeeper),
 		ica.NewAppModule(&app.Keepers.ICAControllerKeeper, &app.Keepers.ICAHostKeeper),
 		packetforward.NewAppModule(&app.Keepers.PacketForwardKeeper, app.GetSubspace(packetforwardtypes.ModuleName)),
 		customwasmodule.NewAppModule(app.appCodec, &app.Keepers.WasmKeeper, app.Keepers.StakingKeeper, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.MsgServiceRouter(), app.GetSubspace(wasmtypes.ModuleName)),
@@ -156,7 +147,7 @@ func appModules(app *TerraApp, encodingConfig terrappsparams.EncodingConfig, ski
 		tokenfactory.NewAppModule(app.Keepers.TokenFactoryKeeper, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.GetSubspace(tokenfactorytypes.ModuleName)),
 		alliance.NewAppModule(app.appCodec, app.Keepers.AllianceKeeper, app.Keepers.StakingKeeper, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.interfaceRegistry, app.GetSubspace(alliancetypes.ModuleName)),
 		feeshare.NewAppModule(app.Keepers.FeeShareKeeper, app.Keepers.AccountKeeper, app.GetSubspace(feesharetypes.ModuleName)),
-		icq.NewAppModule(app.Keepers.ICQKeeper, app.GetSubspace(icqtypes.ModuleName)),
+		ibctm.NewAppModule(app.Keepers.TMLightClientModule),
 	}
 }
 
@@ -166,7 +157,6 @@ func appModules(app *TerraApp, encodingConfig terrappsparams.EncodingConfig, ski
 // so that other modules that want to create or claim capabilities afterwards in InitChain
 // can do so safely.
 var initGenesisOrder = []string{
-	capabilitytypes.ModuleName,
 	authtypes.ModuleName,
 	banktypes.ModuleName,
 	distrtypes.ModuleName,
@@ -185,7 +175,6 @@ var initGenesisOrder = []string{
 	ibcexported.ModuleName,
 	ibctransfertypes.ModuleName,
 	icatypes.ModuleName,
-	ibcfeetypes.ModuleName,
 	packetforwardtypes.ModuleName,
 	tokenfactorytypes.ModuleName,
 	ibchookstypes.ModuleName,
@@ -193,7 +182,6 @@ var initGenesisOrder = []string{
 	alliancetypes.ModuleName,
 	feesharetypes.ModuleName,
 	consensusparamtypes.ModuleName,
-	icqtypes.ModuleName,
 }
 
 var preBlockersOrder = []string{
@@ -203,7 +191,6 @@ var preBlockersOrder = []string{
 
 var beginBlockersOrder = []string{
 	upgradetypes.ModuleName,
-	capabilitytypes.ModuleName,
 	minttypes.ModuleName,
 	distrtypes.ModuleName,
 	slashingtypes.ModuleName,
@@ -222,7 +209,6 @@ var beginBlockersOrder = []string{
 	ibcexported.ModuleName,
 	ibctransfertypes.ModuleName,
 	icatypes.ModuleName,
-	ibcfeetypes.ModuleName,
 	packetforwardtypes.ModuleName,
 	ibchookstypes.ModuleName,
 	wasmtypes.ModuleName,
@@ -230,14 +216,12 @@ var beginBlockersOrder = []string{
 	alliancetypes.ModuleName,
 	feesharetypes.ModuleName,
 	consensusparamtypes.ModuleName,
-	icqtypes.ModuleName,
 }
 
 var endBlockerOrder = []string{
 	crisistypes.ModuleName,
 	govtypes.ModuleName,
 	stakingtypes.ModuleName,
-	capabilitytypes.ModuleName,
 	authtypes.ModuleName,
 	banktypes.ModuleName,
 	distrtypes.ModuleName,
@@ -254,7 +238,6 @@ var endBlockerOrder = []string{
 	ibcexported.ModuleName,
 	ibctransfertypes.ModuleName,
 	icatypes.ModuleName,
-	ibcfeetypes.ModuleName,
 	packetforwardtypes.ModuleName,
 	ibchookstypes.ModuleName,
 	wasmtypes.ModuleName,
@@ -262,7 +245,6 @@ var endBlockerOrder = []string{
 	alliancetypes.ModuleName,
 	feesharetypes.ModuleName,
 	consensusparamtypes.ModuleName,
-	icqtypes.ModuleName,
 }
 
 func (app *TerraApp) SimulationManager() *module.SimulationManager {
@@ -272,7 +254,6 @@ func (app *TerraApp) SimulationManager() *module.SimulationManager {
 		auth.NewAppModule(appCodec, app.Keepers.AccountKeeper, authsims.RandomGenesisAccounts, app.Keepers.GetSubspace(authtypes.ModuleName)),
 		authzmodule.NewAppModule(appCodec, app.Keepers.AuthzKeeper, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.interfaceRegistry),
 		custombankmodule.NewAppModule(appCodec, app.Keepers.BankKeeper, app.Keepers.AccountKeeper, app.Keepers.GetSubspace(banktypes.ModuleName)),
-		capability.NewAppModule(appCodec, *app.Keepers.CapabilityKeeper, false),
 		feegrantmodule.NewAppModule(appCodec, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.Keepers.FeeGrantKeeper, app.interfaceRegistry),
 		gov.NewAppModule(appCodec, &app.Keepers.GovKeeper, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.Keepers.GetSubspace(govtypes.ModuleName)),
 		mint.NewAppModule(appCodec, app.Keepers.MintKeeper, app.Keepers.AccountKeeper, nil, app.Keepers.GetSubspace(minttypes.ModuleName)),
@@ -283,7 +264,6 @@ func (app *TerraApp) SimulationManager() *module.SimulationManager {
 		evidence.NewAppModule(app.Keepers.EvidenceKeeper),
 		ibc.NewAppModule(app.Keepers.IBCKeeper),
 		ibctransfer.NewAppModule(app.Keepers.TransferKeeper),
-		ibcfee.NewAppModule(app.Keepers.IBCFeeKeeper),
 		ica.NewAppModule(&app.Keepers.ICAControllerKeeper, &app.Keepers.ICAHostKeeper),
 		packetforward.NewAppModule(&app.Keepers.PacketForwardKeeper, app.GetSubspace(packetforwardtypes.ModuleName)),
 		customwasmodule.NewAppModule(appCodec, &app.Keepers.WasmKeeper, app.Keepers.StakingKeeper, app.Keepers.AccountKeeper, app.Keepers.BankKeeper, app.BaseApp.MsgServiceRouter(), app.Keepers.GetSubspace(wasmtypes.ModuleName)),

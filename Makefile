@@ -208,7 +208,7 @@ proto-swagger:
 	bash scripts/protoc-swagger-gen.sh
 
 update-swagger-docs:
-	$(BINDIR)/statik -src=client/docs/swagger-ui -dest=client/docs -f -m
+	statik -src=client/docs/swagger-ui -dest=client/docs -f -m
 	@if [ -n "$(git status --porcelain)" ]; then \
         echo "Swagger docs are out of sync!";\
         exit 1;\

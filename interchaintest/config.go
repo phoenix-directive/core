@@ -3,8 +3,8 @@ package interchaintest
 import (
 	"fmt"
 
-	"github.com/strangelove-ventures/interchaintest/v8/chain/cosmos"
-	"github.com/strangelove-ventures/interchaintest/v8/ibc"
+	"github.com/cosmos/interchaintest/v10/chain/cosmos"
+	"github.com/cosmos/interchaintest/v10/ibc"
 
 	"github.com/cosmos/cosmos-sdk/types/module/testutil"
 )
@@ -14,7 +14,7 @@ var (
 	VotingPeriod     = "15s"
 	MaxDepositPeriod = "10s"
 	Image            = ibc.DockerImage{
-		Repository: "terramoneycore",
+		Repository: "localhost:5000/terramoneycore",
 		Version:    "latest",
 		UIDGID:     "1000:1000",
 	}

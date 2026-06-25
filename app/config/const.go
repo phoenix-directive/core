@@ -197,7 +197,6 @@ const (
 	QueryConnectionConsensusState              = "/ibc.core.connection.v1.Query/ConnectionConsensusState"
 	QueryConnectionParams                      = "/ibc.core.connection.v1.Query/ConnectionParams"
 	QueryConnections                           = "/ibc.core.connection.v1.Query/Connections"
-	QueryICQParams                             = "/icq.v1.Query/Params"
 	QueryDeployerFeeShares                     = "/juno.feeshare.v1.Query/DeployerFeeShares"
 	QueryFeeShare                              = "/juno.feeshare.v1.Query/FeeShare"
 	QueryFeeShares                             = "/juno.feeshare.v1.Query/FeeShares"

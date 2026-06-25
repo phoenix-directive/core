@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"cosmossdk.io/math"
-	ibctransferkeeper "github.com/cosmos/ibc-go/v8/modules/apps/transfer/keeper"
-	transfertypes "github.com/cosmos/ibc-go/v8/modules/apps/transfer/types"
+	ibctransferkeeper "github.com/cosmos/ibc-go/v10/modules/apps/transfer/keeper"
+	transfertypes "github.com/cosmos/ibc-go/v10/modules/apps/transfer/types"
 	custombankkeeper "github.com/terra-money/core/v2/x/bank/keeper"
 
 	upgradetypes "cosmossdk.io/x/upgrade/types"
