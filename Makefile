@@ -267,7 +267,7 @@ benchmark:
 	@go test -mod=readonly -bench=. ./...
 
 simulate:
-	@go test  -bench BenchmarkSimulation ./app -NumBlocks=200 -BlockSize 50 -Commit=true -Verbose=true -Enabled=true -Seed 1
+	@go test  -bench BenchmarkSimulation ./app -NumBlocks=200 -BlockSize 50 -Commit=true -Verbose=false -Enabled=true -Seed 2
 
 
 test-e2e-pmf:

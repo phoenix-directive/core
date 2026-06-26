@@ -7,6 +7,7 @@ import {
 } from "./const"
 import { getMnemonics } from "./mnemonics"
 import { getLCDClient } from "./lcd.connection"
+import { signAndBroadcastTx } from "./cosmjs.tx"
 
 export {
     SAFE_BLOCK_INCLUSION_TIME,
@@ -15,7 +16,8 @@ export {
     votingPeriod,
     ibcTransfer,
     getMnemonics,
-    getLCDClient
+    getLCDClient,
+    signAndBroadcastTx
 }
 
 export const getValueByIndexAndTypeAndKey = (events: any[], index: number, type: string, key: string) => {

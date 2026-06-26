@@ -44,9 +44,13 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
+    "@cosmjs/crypto": "0.32.4",
+    "@cosmjs/proto-signing": "0.32.4",
+    "@cosmjs/stargate": "0.32.4",
     "@terra-money/feather.js": "^2.1.0-beta.2",
-    "moment": "^2.29.4",
-    "long": "^5.3.1"
+    "cosmjs-types": "^0.11.0",
+    "long": "^5.3.1",
+    "moment": "^2.29.4"
   },
   "packageManager": "yarn@1.22.19+sha1.4ba7fc5c6e704fce2066ecbfb0b0d8976fe62447"
 }

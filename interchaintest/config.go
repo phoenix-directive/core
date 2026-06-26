@@ -14,7 +14,7 @@ var (
 	VotingPeriod     = "15s"
 	MaxDepositPeriod = "10s"
 	Image            = ibc.DockerImage{
-		Repository: "localhost:5000/terramoneycore",
+		Repository: "terramoneycore",
 		Version:    "latest",
 		UIDGID:     "1000:1000",
 	}
