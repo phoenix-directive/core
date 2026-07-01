@@ -19,11 +19,18 @@ export {
 }
 
 export const getValueByIndexAndTypeAndKey = (events: any[], index: number, type: string, key: string) => {
-    const matchedEvents = events.filter((event: any) => event.type === type && event.attributes.find((attr: any) => attr.key === "msg_index").value === index.toString());
+    const matchedEvents = events.filter((event: any) =>
+        event.type === type &&
+        event.attributes.find((attr: any) => attr.key === "msg_index")?.value === index.toString()
+    );
     if (matchedEvents.length === 0) {
         throw new Error(`No event found with type ${type} and key ${key}`);
     }
-    return matchedEvents[0].attributes.find((attr: any) => attr.key === key).value;
+    const matchedAttribute = matchedEvents[0].attributes.find((attr: any) => attr.key === key);
+    if (matchedAttribute === undefined) {
+        throw new Error(`No attribute found with type ${type} and key ${key}`);
+    }
+    return matchedAttribute.value;
 }
 
 export const getEventsByIndex = (events: any[], index: number) => {

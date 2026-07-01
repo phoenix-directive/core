@@ -1,5 +1,5 @@
 import { AccAddress, Coin, MsgTransfer, MsgSend, Coins } from "@terra-money/feather.js";
-import { blockInclusion, getEventsByIndex, getLCDClient, getMnemonics } from "../../helpers";
+import { blockInclusion, getEventsByIndex, getLCDClient, getMnemonics, getValueByIndexAndTypeAndKey } from "../../helpers";
 import { MsgRegisterInterchainAccount, MsgSendTx } from "@terra-money/feather.js/dist/core/ica/controller/v1/msgs";
 import { Height } from "@terra-money/feather.js/dist/core/ibc/core/client/Height";
 import Long from "long";
@@ -14,6 +14,22 @@ describe("ICA Module (https://github.com/cosmos/ibc-go/tree/release/v7.3.x/modul
     const externalAccAddr = icaMnemonic.accAddress("terra");
     let ibcCoinDenom: string | undefined;
     let intechainAccountAddr: AccAddress | undefined;
+
+    const waitForInterchainAccount = async () => {
+        for (let i = 0; i <= 10; i++) {
+            await blockInclusion();
+            const res = await LCD.chain1.icaV1.controllerAccountAddress(externalAccAddr, "connection-0")
+                .catch((e) => {
+                    const expectMsg = "failed to retrieve account address for icacontroller-";
+                    expect(e.response.data.message.startsWith(expectMsg)).toBeTruthy();
+                });
+            if (res) {
+                expect(res.address).toBeDefined();
+                intechainAccountAddr = res.address;
+                return;
+            }
+        }
+    }
 
     test('Must contain the expected module params', async () => {
         // Query ica host module params
@@ -104,44 +120,17 @@ describe("ICA Module (https://github.com/cosmos/ibc-go/tree/release/v7.3.x/modul
             let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
             await blockInclusion();
             let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
-            let events = txResult.logs[0].events;
-
-            expect(events[0])
-                .toStrictEqual({
-                    "type": "message",
-                    "attributes": [{
-                        "key": "action",
-                        "value": "/ibc.applications.interchain_accounts.controller.v1.MsgRegisterInterchainAccount"
-                    }, {
-                        "key": "sender",
-                        "value": "terra1p4kcrttuxj9kyyvv5px5ccgwf0yrw74yp7jqm6"
-                    }]
-                });
-            expect(events[2])
-                .toStrictEqual({
-                    "type": "message",
-                    "attributes": [{
-                        "key": "module",
-                        "value": "ibc_channel"
-                    }]
-                })
-
-            // Check during 5 blocks for the receival 
-            // of the IBC coin on chain-2
-            for (let i = 0; i <= 5; i++) {
-                await blockInclusion();
-                let res = await LCD.chain1.icaV1.controllerAccountAddress(externalAccAddr, "connection-0")
-                    .catch((e) => {
-                        const expectMsg = "failed to retrieve account address for icacontroller-";
-                        expect(e.response.data.message.startsWith(expectMsg)).toBeTruthy();
-                    })
-                if (res) {
-                    expect(res.address).toBeDefined();
-                    intechainAccountAddr = res.address;
-                    break;
-                }
-            }
+            expect(txResult.code).toBe(0);
+            expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "message", "action"))
+                .toBe("/ibc.applications.interchain_accounts.controller.v1.MsgRegisterInterchainAccount");
+            expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "message", "sender"))
+                .toBe(externalAccAddr);
+            expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "message", "module"))
+                .toBe("ibc_channel");
         }
+
+        await waitForInterchainAccount();
+        expect(intechainAccountAddr).toBeDefined();
     });
 
     describe('After assuring the interchain account exists', () => {
@@ -209,7 +198,6 @@ describe("ICA Module (https://github.com/cosmos/ibc-go/tree/release/v7.3.x/modul
             await blockInclusion();
             let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
             const events = getEventsByIndex(txResult.events, 0);
-            console.log(JSON.stringify(events, null, 2));
             expect(events[0])
                 .toStrictEqual({
                     "type": "message",
