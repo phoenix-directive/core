@@ -15,6 +15,7 @@
     "test:chain:upgrade:v17": "bash src/setup/chain-upgrade/upgrade-simulation-17.sh",
     "test:chain:upgrade:v18": "bash src/setup/chain-upgrade/upgrade-simulation-18.sh",
     "test:chain:upgrade:v19": "bash src/setup/chain-upgrade/upgrade-simulation-19.sh",
+    "test:chain:upgrade:v20": "bash src/setup/chain-upgrade/upgrade-simulation-20.sh",
     "test:start": "jest --runInBand --detectOpenHandles",
     "start": "npm run test:init && npm run test:relayer && npm run test:start",
     "test:clean": "rm -rf src/test-data chain-upgrade-data && pkill terrad && pkill terrad && pkill relayer"

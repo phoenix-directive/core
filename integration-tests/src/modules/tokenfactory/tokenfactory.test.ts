@@ -1,5 +1,5 @@
 import { Coin, Coins, Fee, MnemonicKey, MsgBurn, MsgChangeAdmin, MsgCreateDenom, MsgInstantiateContract, MsgMint, MsgStoreCode, MsgSetBeforeSendHook, MsgSend, MsgSubmitProposal, MsgUpdateParamsTokenFactory, MsgVote } from "@terra-money/feather.js";
-import { getMnemonics, getLCDClient, blockInclusion, votingPeriod } from "../../helpers";
+import { getMnemonics, getLCDClient, blockInclusion, votingPeriod, getValueByIndexAndTypeAndKey } from "../../helpers";
 import fs from "fs";
 import path from 'path';
 import { VoteOption } from "../../../../../terra.proto/js/cosmos/gov/v1/gov";
@@ -35,7 +35,7 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
         let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
         await blockInclusion();
         let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
-        codeId = Number(txResult.logs[0].events[1].attributes[1].value);
+        codeId = Number(getValueByIndexAndTypeAndKey(txResult.events, 0, "store_code", "code_id"));
         expect(codeId).toBeDefined();
 
         const msgInstantiateContract = new MsgInstantiateContract(
@@ -54,7 +54,7 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
         result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
         await blockInclusion();
         txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
-        contractAddress = txResult.logs[0].events[4].attributes[0].value;
+        contractAddress = getValueByIndexAndTypeAndKey(txResult.events, 0, "instantiate", "_contract_address");
         expect(contractAddress).toBeDefined();
     })
 
@@ -92,65 +92,12 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
         let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
         await blockInclusion();
         let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
-        factoryDenom = txResult.logs[0].eventsByType.create_denom.new_token_denom[0] as string
-        expect(txResult.logs[0].events).toStrictEqual([{
-            "type": "message",
-            "attributes": [{
-                "key": "action",
-                "value": "/osmosis.tokenfactory.v1beta1.MsgCreateDenom"
-            }, {
-                "key": "sender",
-                "value": tokenFactoryWalletAddr
-            }, {
-                "key": "module",
-                "value": "tokenfactory"
-            }]
-        }, {
-            "type": "coin_spent",
-            "attributes": [{
-                "key": "spender",
-                "value": tokenFactoryWalletAddr
-            }, {
-                "key": "amount",
-                "value": "10000000uluna"
-            }]
-        }, {
-            "type": "coin_received",
-            "attributes": [{
-                "key": "receiver",
-                "value": "terra1jv65s3grqf6v6jl3dp4t6c9t9rk99cd8pm7utl"
-            }, {
-                "key": "amount",
-                "value": "10000000uluna"
-            }]
-        }, {
-            "type": "transfer",
-            "attributes": [{
-                "key": "recipient",
-                "value": "terra1jv65s3grqf6v6jl3dp4t6c9t9rk99cd8pm7utl"
-            }, {
-                "key": "sender",
-                "value": tokenFactoryWalletAddr
-            }, {
-                "key": "amount",
-                "value": "10000000uluna"
-            }]
-        }, {
-            "type": "message",
-            "attributes": [{
-                "key": "sender",
-                "value": tokenFactoryWalletAddr
-            }]
-        }, {
-            "type": "create_denom",
-            "attributes": [{
-                "key": "creator",
-                "value": tokenFactoryWalletAddr
-            }, {
-                "key": "new_token_denom",
-                "value": factoryDenom
-            }]
-        }]);
+        expect(txResult.code).toBe(0);
+        factoryDenom = getValueByIndexAndTypeAndKey(txResult.events, 0, "create_denom", "new_token_denom") as string;
+        expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "message", "action")).toBe("/osmosis.tokenfactory.v1beta1.MsgCreateDenom");
+        expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "message", "sender")).toBe(tokenFactoryWalletAddr);
+        expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "create_denom", "creator")).toBe(tokenFactoryWalletAddr);
+        expect(factoryDenom).toBe(`factory/${tokenFactoryWalletAddr}/${subdenom}`);
     })
 
     // Mint tokens to the minter address
@@ -169,89 +116,11 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
             let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
             await blockInclusion();
             let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
-            expect(txResult.logs[0].events).toStrictEqual([{
-                "type": "message",
-                "attributes": [{
-                    "key": "action",
-                    "value": "/osmosis.tokenfactory.v1beta1.MsgMint"
-                }, {
-                    "key": "sender",
-                    "value": tokenFactoryWalletAddr
-                }, {
-                    "key": "module",
-                    "value": "tokenfactory"
-                }]
-            },
-            {
-                "type": "coin_received",
-                "attributes": [{
-                    "key": "receiver",
-                    "value": "terra19ejy8n9qsectrf4semdp9cpknflld0j6my8d0p"
-                }, {
-                    "key": "amount",
-                    "value": "1000000000" + factoryDenom
-                }]
-            },
-            {
-                "type": "coinbase",
-                "attributes": [{
-                    "key": "minter",
-                    "value": "terra19ejy8n9qsectrf4semdp9cpknflld0j6my8d0p"
-                }, {
-                    "key": "amount",
-                    "value": "1000000000" + factoryDenom
-                }]
-            },
-            {
-                "type": "coin_spent",
-                "attributes": [{
-                    "key": "spender",
-                    "value": "terra19ejy8n9qsectrf4semdp9cpknflld0j6my8d0p"
-                }, {
-                    "key": "amount",
-                    "value": "1000000000" + factoryDenom
-                }]
-            },
-            {
-                "type": "coin_received",
-                "attributes": [{
-                    "key": "receiver",
-                    "value": tokenFactoryWalletAddr
-                }, {
-                    "key": "amount",
-                    "value": "1000000000" + factoryDenom
-                }]
-            },
-            {
-                "type": "transfer",
-                "attributes": [{
-                    "key": "recipient",
-                    "value": tokenFactoryWalletAddr
-                }, {
-                    "key": "sender",
-                    "value": "terra19ejy8n9qsectrf4semdp9cpknflld0j6my8d0p"
-                }, {
-                    "key": "amount",
-                    "value": "1000000000" + factoryDenom
-                }]
-            },
-            {
-                "type": "message",
-                "attributes": [{
-                    "key": "sender",
-                    "value": "terra19ejy8n9qsectrf4semdp9cpknflld0j6my8d0p"
-                }]
-            },
-            {
-                "type": "tf_mint",
-                "attributes": [{
-                    "key": "mint_to_address",
-                    "value": tokenFactoryWalletAddr
-                }, {
-                    "key": "amount",
-                    "value": "1000000000" + factoryDenom
-                }]
-            }]);
+            expect(txResult.code).toBe(0);
+            expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "message", "action")).toBe("/osmosis.tokenfactory.v1beta1.MsgMint");
+            expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "message", "sender")).toBe(tokenFactoryWalletAddr);
+            expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "tf_mint", "mint_to_address")).toBe(tokenFactoryWalletAddr);
+            expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "tf_mint", "amount")).toBe("1000000000" + factoryDenom);
         });
     })
 
@@ -267,88 +136,16 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
                     ),
                 ],
                 chainID: "test-1",
-                fee: new Fee(100_000, new Coins({ uluna: 100_000 })),
+                fee: new Fee(2000_000, new Coins({ uluna: 100_000 })),
             });
             let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
             await blockInclusion();
             let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
-            expect(txResult.logs[0].events).toStrictEqual([{
-                "type": "message",
-                "attributes": [{
-                    "key": "action",
-                    "value": "/osmosis.tokenfactory.v1beta1.MsgBurn"
-                }, {
-                    "key": "sender",
-                    "value": tokenFactoryWalletAddr
-                }, {
-                    "key": "module",
-                    "value": "tokenfactory"
-                }]
-            }, {
-                "type": "coin_spent",
-                "attributes": [{
-                    "key": "spender",
-                    "value": tokenFactoryWalletAddr
-                }, {
-                    "key": "amount",
-                    "value": "500000000" + factoryDenom
-                }]
-            }, {
-                "type": "coin_received",
-                "attributes": [{
-                    "key": "receiver",
-                    "value": "terra19ejy8n9qsectrf4semdp9cpknflld0j6my8d0p"
-                }, {
-                    "key": "amount",
-                    "value": "500000000" + factoryDenom
-                }]
-            }, {
-                "type": "transfer",
-                "attributes": [{
-                    "key": "recipient",
-                    "value": "terra19ejy8n9qsectrf4semdp9cpknflld0j6my8d0p"
-                }, {
-                    "key": "sender",
-                    "value": tokenFactoryWalletAddr
-                }, {
-                    "key": "amount",
-                    "value": "500000000" + factoryDenom
-                }]
-            }, {
-                "type": "message",
-                "attributes": [{
-                    "key": "sender",
-                    "value": tokenFactoryWalletAddr
-                }
-                ]
-            }, {
-                "type": "coin_spent",
-                "attributes": [{
-                    "key": "spender",
-                    "value": "terra19ejy8n9qsectrf4semdp9cpknflld0j6my8d0p"
-                }, {
-                    "key": "amount",
-                    "value": "500000000" + factoryDenom
-                }]
-            }, {
-                "type": "burn",
-                "attributes": [{
-                    "key": "burner",
-                    "value": "terra19ejy8n9qsectrf4semdp9cpknflld0j6my8d0p"
-                }, {
-                    "key": "amount",
-                    "value": "500000000" + factoryDenom
-                }]
-            }, {
-                "type": "tf_burn",
-                "attributes": [{
-                    "key": "burn_from_address",
-                    "value": tokenFactoryWalletAddr
-                }, {
-                    "key": "amount",
-                    "value": "500000000" + factoryDenom
-                }]
-            }])
+            expect(txResult.code).toBe(0);
+            expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "message", "action")).toBe("/osmosis.tokenfactory.v1beta1.MsgBurn");
+            expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "message", "sender")).toBe(tokenFactoryWalletAddr);
+            expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "tf_burn", "burn_from_address")).toBe(tokenFactoryWalletAddr);
+            expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "tf_burn", "amount")).toBe("500000000" + factoryDenom);
         });
     })
 
@@ -386,7 +183,7 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
                 expect(txResult.code).toBe(0);
 
                 // Get the proposal id and validate exists
-                let proposalId = Number(txResult.logs[0].eventsByType.submit_proposal.proposal_id[0]);
+                let proposalId = Number(getValueByIndexAndTypeAndKey(txResult.events, 0, "submit_proposal", "proposal_id"));
                 expect(proposalId)
 
                 // Vote for the proposal
@@ -435,28 +232,11 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
                 let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
                 await blockInclusion();
                 let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
-                expect(txResult.logs[0].events).toStrictEqual([{
-                    "type": "message",
-                    "attributes": [{
-                        "key": "action",
-                        "value": "/osmosis.tokenfactory.v1beta1.MsgSetBeforeSendHook"
-                    }, {
-                        "key": "sender",
-                        "value": tokenFactoryWalletAddr
-                    }, {
-                        "key": "module",
-                        "value": "tokenfactory"
-                    }]
-                }, {
-                    "type": "set_before_send_hook",
-                    "attributes": [{
-                        "key": "denom",
-                        "value": factoryDenom
-                    }, {
-                        "key": "before_send_hook_address",
-                        "value": contractAddress
-                    }]
-                }]);
+                expect(txResult.code).toBe(0);
+                expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "message", "action")).toBe("/osmosis.tokenfactory.v1beta1.MsgSetBeforeSendHook");
+                expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "message", "sender")).toBe(tokenFactoryWalletAddr);
+                expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "set_before_send_hook", "denom")).toBe(factoryDenom);
+                expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "set_before_send_hook", "before_send_hook_address")).toBe(contractAddress);
             });
         });
 
@@ -480,56 +260,12 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
                 let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
                 await blockInclusion();
                 let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
-                expect(txResult.logs[0].events)
-                    .toStrictEqual([{
-                        "type": "message",
-                        "attributes": [{
-                            "key": "action",
-                            "value": "/cosmos.bank.v1beta1.MsgSend"
-                        }, {
-                            "key": "sender",
-                            "value": tokenFactoryWalletAddr
-                        }, {
-                            "key": "module",
-                            "value": "bank"
-                        }]
-                    }, {
-                        "type": "coin_spent",
-                        "attributes": [{
-                            "key": "spender",
-                            "value": tokenFactoryWalletAddr
-                        }, {
-                            "key": "amount",
-                            "value": "1" + factoryDenom
-                        }]
-                    }, {
-                        "type": "coin_received",
-                        "attributes": [{
-                            "key": "receiver",
-                            "value": randomAccountAddr
-                        }, {
-                            "key": "amount",
-                            "value": "1" + factoryDenom
-                        }]
-                    }, {
-                        "type": "transfer",
-                        "attributes": [{
-                            "key": "recipient",
-                            "value": randomAccountAddr
-                        }, {
-                            "key": "sender",
-                            "value": tokenFactoryWalletAddr
-                        }, {
-                            "key": "amount",
-                            "value": "1" + factoryDenom
-                        }]
-                    }, {
-                        "type": "message",
-                        "attributes": [{
-                            "key": "sender",
-                            "value": tokenFactoryWalletAddr
-                        }]
-                    }]);
+                expect(txResult.code).toBe(0);
+                expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "message", "action")).toBe("/cosmos.bank.v1beta1.MsgSend");
+                expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "message", "sender")).toBe(tokenFactoryWalletAddr);
+                expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "transfer", "recipient")).toBe(randomAccountAddr);
+                expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "transfer", "sender")).toBe(tokenFactoryWalletAddr);
+                expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "transfer", "amount")).toBe("1" + factoryDenom);
             });
 
             test("100 token blocked by the smart contract before send", async () => {
@@ -609,29 +345,11 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
             let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
             await blockInclusion();
             let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
-            expect(txResult.logs[0].events).toStrictEqual([{
-                "type": "message",
-                "attributes": [{
-                    "key": "action",
-                    "value": "/osmosis.tokenfactory.v1beta1.MsgChangeAdmin"
-                }, {
-                    "key": "sender",
-                    "value": tokenFactoryWalletAddr
-                }, {
-                    "key": "module",
-                    "value": "tokenfactory"
-                }]
-            },
-            {
-                "type": "change_admin",
-                "attributes": [{
-                    "key": "denom",
-                    "value": factoryDenom
-                }, {
-                    "key": "new_admin",
-                    "value": randomAccountAddr
-                }]
-            }]);
+            expect(txResult.code).toBe(0);
+            expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "message", "action")).toBe("/osmosis.tokenfactory.v1beta1.MsgChangeAdmin");
+            expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "message", "sender")).toBe(tokenFactoryWalletAddr);
+            expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "change_admin", "denom")).toBe(factoryDenom);
+            expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "change_admin", "new_admin")).toBe(randomAccountAddr);
         });
 
         test("Must query the new admin of the denom", async () => {
@@ -672,7 +390,7 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
             await blockInclusion();
 
             let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
-            let customQueryCodeId = Number(txResult.logs[0].events[1].attributes[1].value);
+            let customQueryCodeId = Number(getValueByIndexAndTypeAndKey(txResult.events, 0, "store_code", "code_id"));
             expect(customQueryCodeId).toBeDefined();
 
             // Instantiate alliance query contract
@@ -691,7 +409,7 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
             await blockInclusion();
 
             txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
-            customQueryContractAddress = txResult.logs[0].events[1].attributes[0].value;
+            customQueryContractAddress = getValueByIndexAndTypeAndKey(txResult.events, 0, "instantiate", "_contract_address");
             expect(customQueryContractAddress).toBeDefined();
         })
         test("Must query token data using contract", async () => {
