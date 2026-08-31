@@ -38,3 +38,33 @@ export const getValueByIndexAndTypeAndKey = (events: any[], index: number, type:
 export const getEventsByIndex = (events: any[], index: number) => {
     return events.filter((event: any) => event.attributes.find((attr: any) => attr.key === "msg_index" && attr.value === index.toString()));
 }
+
+/**
+ * Repeatedly runs `fn` until `predicate` accepts its result. Chain state is
+ * eventually consistent from the test's point of view (IBC relaying, callbacks
+ * and tx indexing all happen asynchronously), so waiting for a fixed amount of
+ * time makes the tests racy. Errors are treated as "not ready yet" because a
+ * contract query for a key that does not exist yet answers with a 500.
+ *
+ * The last attempt is executed outside of the loop so a genuine mismatch still
+ * surfaces as a normal assertion diff instead of a timeout.
+ */
+export const pollUntil = async <T>(
+    fn: () => Promise<T>,
+    predicate: (value: T) => boolean,
+    attempts = 20,
+    delay = 500,
+): Promise<T> => {
+    for (let attempt = 0; attempt < attempts - 1; attempt++) {
+        try {
+            const value = await fn();
+            if (predicate(value)) {
+                return value;
+            }
+        } catch (e) {
+            // retry
+        }
+        await new Promise(resolve => setTimeout(resolve, delay));
+    }
+    return fn();
+}

@@ -1,6 +1,6 @@
 import { Coin, Coins, MsgInstantiateContract, MsgStoreCode, MsgTransfer } from "@terra-money/feather.js";
 import { deriveIbcHooksSender } from "@terra-money/feather.js/dist/core/ibc-hooks";
-import { ibcTransfer, getMnemonics, getLCDClient, blockInclusion, getValueByIndexAndTypeAndKey, getEventsByIndex, signAndBroadcastTx } from "../../helpers";
+import { ibcTransfer, getMnemonics, getLCDClient, blockInclusion, getValueByIndexAndTypeAndKey, getEventsByIndex, signAndBroadcastTx, pollUntil } from "../../helpers";
 import fs from "fs";
 import path from 'path';
 import moment from "moment";
@@ -150,11 +150,14 @@ describe("IbcHooks Module (github.com/cosmos/ibc-apps/modules/ibc-hooks/v7) ", (
                 chainID: "test-1",
             });
             await ibcTransfer();
-            await blockInclusion();
-            await blockInclusion();
-            let res = await LCD.chain1.wasm.contractQuery(
-                contractAddress,
-                { "get_count": { "addr": contractAddress } }
+            // Wait until the acknowledgement callback has been relayed back to
+            // chain-1 and executed by the contract.
+            let res = await pollUntil(
+                () => LCD.chain1.wasm.contractQuery(
+                    contractAddress,
+                    { "get_count": { "addr": contractAddress } }
+                ),
+                (value: any) => value?.count === 2,
             );
             expect(res).toStrictEqual({ "count": 2 });
             res = await LCD.chain1.wasm.contractQuery(
@@ -196,10 +199,13 @@ describe("IbcHooks Module (github.com/cosmos/ibc-apps/modules/ibc-hooks/v7) ", (
                 chainID: "test-1",
             });
             await ibcTransfer();
-            await ibcTransfer();
-            let res = await LCD.chain1.wasm.contractQuery(
-                contractAddress,
-                { "get_count": { "addr": contractAddress } }
+            // Wait until the timeout callback has been executed by the contract.
+            let res = await pollUntil(
+                () => LCD.chain1.wasm.contractQuery(
+                    contractAddress,
+                    { "get_count": { "addr": contractAddress } }
+                ),
+                (value: any) => value?.count === 22,
             );
             expect(res).toStrictEqual({ "count": 22 });
             res = await LCD.chain1.wasm.contractQuery(
