@@ -1575,8 +1575,8 @@ github.com/peterh/liner v1.1.1-0.20190123174540-a2c9a5303de7/go.mod h1:CRroGNssy
 github.com/petermattis/goid v0.0.0-20240813172612-4fcff4a6cae7 h1:Dx7Ovyv/SFnMFw3fD4oEoeorXc6saIiQ23LrGLth0Gw=
 github.com/petermattis/goid v0.0.0-20240813172612-4fcff4a6cae7/go.mod h1:pxMtw7cyUw6B2bRH0ZBANSPg+AoSud1I1iyJHI69jH4=
 github.com/philhofer/fwd v1.0.0/go.mod h1:gk3iGcWd9+svBvR0sR+KPcfE+RNWozjowpeBVG3ZVNU=
-github.com/phoenix-directive/alliance v0.4.5 h1:5F1I9+k4S+qu2lpn6dcothJdqZiW0EQpQ6HZTfSKml8=
-github.com/phoenix-directive/alliance v0.4.5/go.mod h1:zVKzF0eaaGWU/bLc7eibxZgUtmsIX0iS6mIQifjF+0o=
+github.com/phoenix-directive/alliance v0.5.1 h1:dZ0HD6XuTAxjZSP9olhnL05hYr99VGmFGW0/0cnHMLA=
+github.com/phoenix-directive/alliance v0.5.1/go.mod h1:TJiDdvVAMghISHByhouewzEoHz8vH4u2zXufEZuGa/c=
 github.com/phoenix-directive/cosmos-sdk v0.53.7-terra.0 h1:2KrU6Te0zWLdTV6k2Lb1z8WqiObLHIdD8ZHBASlh7gI=
 github.com/phoenix-directive/cosmos-sdk v0.53.7-terra.0/go.mod h1:N6YuprhAabInbT3YGumGDKONbvPX5dNro7RjHvkQoKE=
 github.com/phpdave11/gofpdf v1.4.2/go.mod h1:zpO6xFn9yxo3YLyMvW8HcKWVdbNqgIfOOp2dXMnm1mY=

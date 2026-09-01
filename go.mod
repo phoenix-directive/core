@@ -45,7 +45,7 @@ require (
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
-	github.com/terra-money/alliance v0.4.0
+	github.com/terra-money/alliance v0.5.1
 	go.uber.org/mock v0.6.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20250707201910-8d1bb00bc6a7
 	google.golang.org/grpc v1.75.0
@@ -248,5 +248,5 @@ replace (
 	github.com/cosmos/ledger-cosmos-go => ./ledger-go
 	github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
 	github.com/syndtr/goleveldb => github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
-	github.com/terra-money/alliance => github.com/phoenix-directive/alliance v0.4.5
+	github.com/terra-money/alliance => github.com/phoenix-directive/alliance v0.5.1
 )

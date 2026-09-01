@@ -416,7 +416,7 @@ cat > "$CHAIN_HOME/software-upgrade.json" <<EOF
   "metadata": "",
   "deposit": "550000000$DENOM",
   "title": "Upgrade to $SOFTWARE_UPGRADE_NAME",
-  "summary": ""
+  "summary": "Upgrade to $SOFTWARE_UPGRADE_NAME"
 }
 EOF
 
@@ -481,4 +481,4 @@ if (( PERIOD_VESTING_BALANCE_2 <= PERIOD_VESTING_BALANCE_1 )); then
 fi
 
 stop_node
-echo "v20 Migration upgrade test passed"
+echo "v21 Migration upgrade test passed"
