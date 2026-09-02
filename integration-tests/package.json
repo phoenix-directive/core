@@ -15,7 +15,7 @@
     "test:chain:upgrade:v17": "bash src/setup/chain-upgrade/upgrade-simulation-17.sh",
     "test:chain:upgrade:v18": "bash src/setup/chain-upgrade/upgrade-simulation-18.sh",
     "test:chain:upgrade:v19": "bash src/setup/chain-upgrade/upgrade-simulation-19.sh",
-    "test:chain:upgrade:v20": "bash src/setup/chain-upgrade/upgrade-simulation-20.sh",
+    "test:chain:upgrade:v21": "bash src/setup/chain-upgrade/upgrade-simulation-21.sh",
     "test:start": "jest --runInBand --detectOpenHandles",
     "start": "npm run test:init && npm run test:relayer && npm run test:start",
     "test:clean": "rm -rf src/test-data chain-upgrade-data && pkill terrad && pkill terrad && pkill relayer"
@@ -44,9 +44,13 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
+    "@cosmjs/crypto": "0.32.4",
+    "@cosmjs/proto-signing": "0.32.4",
+    "@cosmjs/stargate": "0.32.4",
     "@terra-money/feather.js": "^2.1.0-beta.2",
-    "moment": "^2.29.4",
-    "long": "^5.3.1"
+    "cosmjs-types": "^0.11.0",
+    "long": "^5.3.1",
+    "moment": "^2.29.4"
   },
   "packageManager": "yarn@1.22.19+sha1.4ba7fc5c6e704fce2066ecbfb0b0d8976fe62447"
 }

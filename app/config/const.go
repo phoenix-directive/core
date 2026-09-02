@@ -197,7 +197,6 @@ const (
 	QueryConnectionConsensusState              = "/ibc.core.connection.v1.Query/ConnectionConsensusState"
 	QueryConnectionParams                      = "/ibc.core.connection.v1.Query/ConnectionParams"
 	QueryConnections                           = "/ibc.core.connection.v1.Query/Connections"
-	QueryICQParams                             = "/icq.v1.Query/Params"
 	QueryDeployerFeeShares                     = "/juno.feeshare.v1.Query/DeployerFeeShares"
 	QueryFeeShare                              = "/juno.feeshare.v1.Query/FeeShare"
 	QueryFeeShares                             = "/juno.feeshare.v1.Query/FeeShares"
@@ -230,4 +229,5 @@ const (
 	Upgrade2_18   = "v2.18"
 	Upgrade2_19   = "v2.19"
 	Upgrade2_20   = "v2.20"
+	Upgrade2_21   = "v2.21"
 )

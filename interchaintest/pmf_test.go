@@ -6,16 +6,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/strangelove-ventures/interchaintest/v8"
-	"github.com/strangelove-ventures/interchaintest/v8/chain/cosmos"
-	"github.com/strangelove-ventures/interchaintest/v8/ibc"
-	interchaintestrelayer "github.com/strangelove-ventures/interchaintest/v8/relayer"
-	"github.com/strangelove-ventures/interchaintest/v8/testreporter"
-	"github.com/strangelove-ventures/interchaintest/v8/testutil"
+	"github.com/cosmos/interchaintest/v10"
+	"github.com/cosmos/interchaintest/v10/chain/cosmos"
+	"github.com/cosmos/interchaintest/v10/ibc"
+	interchaintestrelayer "github.com/cosmos/interchaintest/v10/relayer"
+	"github.com/cosmos/interchaintest/v10/testreporter"
+	"github.com/cosmos/interchaintest/v10/testutil"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
-	transfertypes "github.com/cosmos/ibc-go/v8/modules/apps/transfer/types"
+	transfertypes "github.com/cosmos/ibc-go/v10/modules/apps/transfer/types"
 
 	math "cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -201,7 +201,7 @@ func TestPMF(t *testing.T) {
 
 	firstHopEscrowAccount := sdk.MustBech32ifyAddressBytes(chainA.Config().Bech32Prefix, transfertypes.GetEscrowAddress(abChan.PortID, abChan.ChannelID))
 	secondHopEscrowAccount := sdk.MustBech32ifyAddressBytes(chainB.Config().Bech32Prefix, transfertypes.GetEscrowAddress(bcChan.PortID, bcChan.ChannelID))
-	thirdHopEscrowAccount := sdk.MustBech32ifyAddressBytes(chainC.Config().Bech32Prefix, transfertypes.GetEscrowAddress(cdChan.PortID, abChan.ChannelID))
+	thirdHopEscrowAccount := sdk.MustBech32ifyAddressBytes(chainC.Config().Bech32Prefix, transfertypes.GetEscrowAddress(cdChan.PortID, cdChan.ChannelID))
 
 	t.Run("multi-hop a->b->c->d", func(t *testing.T) {
 		// Send packet from Chain A->Chain B->Chain C->Chain D

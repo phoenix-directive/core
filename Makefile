@@ -208,7 +208,7 @@ proto-swagger:
 	bash scripts/protoc-swagger-gen.sh
 
 update-swagger-docs:
-	$(BINDIR)/statik -src=client/docs/swagger-ui -dest=client/docs -f -m
+	statik -src=client/docs/swagger-ui -dest=client/docs -f -m
 	@if [ -n "$(git status --porcelain)" ]; then \
         echo "Swagger docs are out of sync!";\
         exit 1;\
@@ -267,7 +267,7 @@ benchmark:
 	@go test -mod=readonly -bench=. ./...
 
 simulate:
-	@go test  -bench BenchmarkSimulation ./app -NumBlocks=200 -BlockSize 50 -Commit=true -Verbose=true -Enabled=true -Seed 1
+	@go test  -bench BenchmarkSimulation ./app -NumBlocks=200 -BlockSize 50 -Commit=true -Verbose=false -Enabled=true -Seed 2
 
 
 test-e2e-pmf:

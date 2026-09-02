@@ -1,10 +1,9 @@
-import { getLCDClient, getMnemonics, blockInclusion, votingPeriod, getValueByIndexAndTypeAndKey, } from "../../helpers";
+import { getLCDClient, getMnemonics, blockInclusion, votingPeriod, getValueByIndexAndTypeAndKey, signAndBroadcastTx } from "../../helpers";
 import {
     Coin,
     MsgCreateAlliance,
     Coins,
     MsgVote,
-    Fee,
     MsgAllianceDelegate,
     MsgClaimDelegationRewards,
     MsgAllianceUndelegate,
@@ -68,7 +67,7 @@ describe("Alliance Module (https://github.com/terra-money/alliance/tree/release/
         //         break;
         //     }
         // }
-        let tx = await val2Wallet.createAndSignTx({
+        let result = await signAndBroadcastTx(val2Wallet, {
             msgs: [
                 new MsgCreateDenom(
                     val2WalletAddress,
@@ -78,13 +77,12 @@ describe("Alliance Module (https://github.com/terra-money/alliance/tree/release/
             chainID: "test-2",
         });
 
-        let result = await LCD.chain2.tx.broadcastSync(tx, "test-2");
         await blockInclusion();
         await blockInclusion();
         let txResult = await LCD.chain2.tx.txInfo(result.txhash, "test-2") as any;
         allianceCoin = new Coin(getValueByIndexAndTypeAndKey(txResult.events, 0, "create_denom", "new_token_denom"), 1);
 
-        tx = await val2Wallet.createAndSignTx({
+        result = await signAndBroadcastTx(val2Wallet, {
             msgs: [
                 new MsgMint(
                     val2WalletAddress,
@@ -93,7 +91,6 @@ describe("Alliance Module (https://github.com/terra-money/alliance/tree/release/
             ],
             chainID: "test-2",
         });
-        result = await LCD.chain2.tx.broadcastSync(tx, "test-2");
         await blockInclusion();
 
         const balances = await LCD.chain2.bank.balance(val2WalletAddress);
@@ -131,11 +128,10 @@ describe("Alliance Module (https://github.com/terra-money/alliance/tree/release/
             "summary"
         );
         // Create an alliance proposal sign and submit on chain-2
-        let tx = await val2Wallet.createAndSignTx({
+        let result = await signAndBroadcastTx(val2Wallet, {
             msgs: [msgProposal],
             chainID: "test-2",
         });
-        let result = await LCD.chain2.tx.broadcastSync(tx, "test-2");
         await blockInclusion();
 
         // Check that the proposal was created successfully
@@ -147,16 +143,18 @@ describe("Alliance Module (https://github.com/terra-money/alliance/tree/release/
         expect(proposalId)
 
         // Vote for the proposal
-        tx = await val2Wallet.createAndSignTx({
+        result = await signAndBroadcastTx(val2Wallet, {
             msgs: [new MsgVote(
                 proposalId,
                 val2WalletAddress,
                 VoteOption.VOTE_OPTION_YES
             )],
-            fee: new Fee(100_000, "100000uluna"),
+            fee: {
+                amount: [{ denom: "uluna", amount: "100000" }],
+                gas: "100000",
+            },
             chainID: "test-2",
         });
-        result = await LCD.chain2.tx.broadcastSync(tx, "test-2");
         await blockInclusion();
         await votingPeriod();
         txResult = await LCD.chain2.tx.txInfo(result.txhash, "test-2")
@@ -175,7 +173,7 @@ describe("Alliance Module (https://github.com/terra-money/alliance/tree/release/
 
     describe("After Alliance has been created", () => {
         test('Must delegate to the alliance', async () => {
-            let tx = await val2Wallet.createAndSignTx({
+            let result = await signAndBroadcastTx(val2Wallet, {
                 msgs: [
                     new MsgAllianceDelegate(
                         val2WalletAddress,
@@ -185,7 +183,6 @@ describe("Alliance Module (https://github.com/terra-money/alliance/tree/release/
                 ],
                 chainID: "test-2",
             });
-            let result = await LCD.chain2.tx.broadcastSync(tx, "test-2");
             await blockInclusion();
 
             // Check that the proposal was created successfully
@@ -223,14 +220,13 @@ describe("Alliance Module (https://github.com/terra-money/alliance/tree/release/
             beforeAll(async () => {
 
                 // Deploy query contract
-                let tx = await allianceWallet2.createAndSignTx({
+                let result = await signAndBroadcastTx(allianceWallet2, {
                     msgs: [
                         new MsgStoreCode(allianceAccountAddress, fs.readFileSync(path.join(__dirname, "/../../contracts/custom_queries.wasm")).toString("base64")),
                     ],
                     chainID: "test-2",
                 });
 
-                let result = await LCD.chain2.tx.broadcastSync(tx, "test-2");
                 await blockInclusion();
 
                 let txResult = await LCD.chain2.tx.txInfo(result.txhash, "test-2") as any;
@@ -239,7 +235,7 @@ describe("Alliance Module (https://github.com/terra-money/alliance/tree/release/
                 expect(allianceQueryCodeId).toBeDefined();
 
                 // Instantiate query contract
-                tx = await allianceWallet2.createAndSignTx({
+                result = await signAndBroadcastTx(allianceWallet2, {
                     msgs: [new MsgInstantiateContract(
                         allianceAccountAddress,
                         allianceAccountAddress,
@@ -250,7 +246,6 @@ describe("Alliance Module (https://github.com/terra-money/alliance/tree/release/
                     )],
                     chainID: "test-2",
                 });
-                result = await LCD.chain2.tx.broadcastSync(tx, "test-2");
                 await blockInclusion();
 
                 txResult = await LCD.chain2.tx.txInfo(result.txhash, "test-2") as any;
@@ -295,7 +290,7 @@ describe("Alliance Module (https://github.com/terra-money/alliance/tree/release/
 
         describe("After delegation", () => {
             test("Must claim rewards from the alliance", async () => {
-                let tx = await val2Wallet.createAndSignTx({
+                let result = await signAndBroadcastTx(val2Wallet, {
                     msgs: [
                         new MsgClaimDelegationRewards(
                             val2WalletAddress,
@@ -303,10 +298,12 @@ describe("Alliance Module (https://github.com/terra-money/alliance/tree/release/
                             allianceCoin.denom,
                         ),
                     ],
-                    fee: new Fee(1000_000, "100000uluna"),
+                    fee: {
+                        amount: [{ denom: "uluna", amount: "100000" }],
+                        gas: "1000000",
+                    },
                     chainID: "test-2",
                 });
-                let result = await LCD.chain2.tx.broadcastSync(tx, "test-2");
                 await blockInclusion();
 
                 // Check that the proposal was created successfully
@@ -324,7 +321,7 @@ describe("Alliance Module (https://github.com/terra-money/alliance/tree/release/
 
             test("Must undelegate from the alliance", async () => {
                 await blockInclusion();
-                let tx = await val2Wallet.createAndSignTx({
+                let result = await signAndBroadcastTx(val2Wallet, {
                     msgs: [
                         new MsgAllianceUndelegate(
                             val2WalletAddress,
@@ -332,10 +329,12 @@ describe("Alliance Module (https://github.com/terra-money/alliance/tree/release/
                             new Coin(allianceCoin.denom, 1000),
                         ),
                     ],
-                    fee: new Fee(1000_000, "100000uluna"),
+                    fee: {
+                        amount: [{ denom: "uluna", amount: "100000" }],
+                        gas: "1000000",
+                    },
                     chainID: "test-2",
                 });
-                let result = await LCD.chain2.tx.broadcastSync(tx, "test-2");
                 await blockInclusion();
                 await blockInclusion();
 
@@ -372,11 +371,10 @@ describe("Alliance Module (https://github.com/terra-money/alliance/tree/release/
                 "summary"
             );
             // Create a delete alliance proposal sign and submit on chain-2
-            let tx = await val2Wallet.createAndSignTx({
+            let result = await signAndBroadcastTx(val2Wallet, {
                 msgs: [msgProposal],
                 chainID: "test-2",
             });
-            let result = await LCD.chain2.tx.broadcastSync(tx, "test-2");
             await blockInclusion();
 
             // Check that the proposal was created successfully
@@ -388,16 +386,18 @@ describe("Alliance Module (https://github.com/terra-money/alliance/tree/release/
             expect(proposalId)
 
             // Vote for the proposal
-            tx = await val2Wallet.createAndSignTx({
+            result = await signAndBroadcastTx(val2Wallet, {
                 msgs: [new MsgVote(
                     proposalId,
                     val2WalletAddress,
                     VoteOption.VOTE_OPTION_YES
                 )],
-                fee: new Fee(100_000, "100000uluna"),
+                fee: {
+                    amount: [{ denom: "uluna", amount: "100000" }],
+                    gas: "100000",
+                },
                 chainID: "test-2",
             });
-            result = await LCD.chain2.tx.broadcastSync(tx, "test-2");
             await votingPeriod();
             txResult = await LCD.chain2.tx.txInfo(result.txhash, "test-2")
             expect(txResult.code).toBe(0);
