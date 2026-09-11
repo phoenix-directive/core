@@ -19,10 +19,10 @@ require (
 	cosmossdk.io/x/tx v0.13.8
 	cosmossdk.io/x/upgrade v0.1.4
 	github.com/CosmWasm/wasmd v0.54.9
-	github.com/CosmWasm/wasmvm/v2 v2.2.8
+	github.com/CosmWasm/wasmvm/v2 v2.2.9-rc.2
 	github.com/cometbft/cometbft v0.38.21
 	github.com/cometbft/cometbft-db v0.14.1 // indirect
-	github.com/cosmos/btcutil v1.0.5
+	github.com/cosmos/btcutil v1.0.5 // indirect
 	github.com/cosmos/cosmos-db v1.1.1
 	github.com/cosmos/cosmos-proto v1.0.0-beta.5
 	github.com/cosmos/cosmos-sdk v0.50.15
@@ -53,10 +53,7 @@ require (
 	google.golang.org/grpc v1.70.0
 )
 
-require (
-	github.com/hashicorp/go-metrics v0.5.3
-	golang.org/x/crypto v0.33.0
-)
+require github.com/hashicorp/go-metrics v0.5.3
 
 require (
 	cloud.google.com/go v0.115.0 // indirect
@@ -205,6 +202,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.32.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.17.0 // indirect
+	golang.org/x/crypto v0.33.0 // indirect
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
 	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/oauth2 v0.24.0 // indirect
@@ -228,6 +226,8 @@ require (
 
 replace (
 	github.com/99designs/keyring => github.com/cosmos/keyring v1.2.0
+	github.com/CosmWasm/wasmd => github.com/CosmWasm/priv_wasmd_sec v0.54.10-rc.2
+	github.com/CosmWasm/wasmvm/v2 => github.com/CosmWasm/priv_wasmvm_sec/v2 v2.2.9-rc.2
 	github.com/cosmos/cosmos-sdk => github.com/phoenix-directive/cosmos-sdk v0.50.15-terra.0
 	github.com/cosmos/ledger-cosmos-go => ./ledger-go
 	github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2

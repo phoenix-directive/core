@@ -10,13 +10,12 @@ FROM --platform=${BUILDPLATFORM} ${BASE_IMAGE} AS base
 ###############################################################################
 
 FROM base AS builder-stage-1
-ARG GO_VERSION="1.22.10"
+ARG GO_VERSION="1.23.6"
 ARG GIT_COMMIT
 ARG GIT_VERSION
 ARG BUILDPLATFORM
 ARG GOOS=linux \
     GOARCH=amd64
-
 ENV GOOS=$GOOS \ 
     GOARCH=$GOARCH
 
@@ -35,7 +34,8 @@ RUN set -eux &&\
     linux-headers \
     build-base \
     cmake \
-    git
+    git \
+    patchelf
 
 # install mimalloc for musl
 WORKDIR ${GOPATH}/src/mimalloc
@@ -53,33 +53,57 @@ RUN set -eux &&\
 WORKDIR ${GOPATH}/src/app
 COPY ledger-go ./ledger-go
 COPY go.mod go.sum  ./
+
+# Hotfix to wire private wasmd
+COPY .modcache/ /modcache/
+ENV GOPROXY=file:///modcache,https://proxy.golang.org,direct
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/root/go/pkg/mod \
     go mod download -x
-
-# Cosmwasm - Download correct libwasmvm version
-RUN set -eux &&\
-    WASMVM_VERSION=$(go list -m github.com/CosmWasm/wasmvm/v2 | cut -d ' ' -f 2) && \
-    WASMVM_DOWNLOADS="https://github.com/CosmWasm/wasmvm/releases/download/${WASMVM_VERSION}"; \
-    wget ${WASMVM_DOWNLOADS}/checksums.txt -O /tmp/checksums.txt; \
-    if [ ${BUILDPLATFORM} = "linux/amd64" ]; then \
-        WASMVM_URL="${WASMVM_DOWNLOADS}/libwasmvm_muslc.x86_64.a"; \
-        WASMVM_FILE="libwasmvm_muslc.x86_64.a"; \
-    elif [ ${BUILDPLATFORM} = "linux/arm64" ]; then \
-        WASMVM_URL="${WASMVM_DOWNLOADS}/libwasmvm_muslc.aarch64.a"; \
-        WASMVM_FILE="libwasmvm_muslc.aarch64.a"; \
-    # elif [ ${BUILDPLATFORM} = "darwin/amd64" ]; then \
-    #     WASMVM_URL="${WASMVM_DOWNLOADS}/libwasmvm.dylib"; \        
-    # elif [ ${BUILDPLATFORM} = "darwin/arm64" ]; then \
-    #     WASMVM_URL="${WASMVM_DOWNLOADS}/libwasmvm.dylib"; \        
+RUN apk add --no-cache xz \
+ && unxz -c "$(go list -mod=readonly -m -f '{{.Dir}}' github.com/CosmWasm/wasmvm/v2)/internal/api/libwasmvm_muslc.$(uname -m).a.xz" \
+      > "/lib/libwasmvm_muslc.$(uname -m).a"
+RUN set -eux; \
+    if [ "${BUILDPLATFORM}" = "linux/amd64" ]; then \
+        WASMVM_ARCH="x86_64"; \
+        WASMVM_SHA256="3032aa5b8d486625327073dc60e007bcebd5a6202cdcecb7d5b21ca8bc0a4889"; \
+    elif [ "${BUILDPLATFORM}" = "linux/arm64" ]; then \
+        WASMVM_ARCH="aarch64"; \
+        WASMVM_SHA256="ebd660d24d0d698c4784f8d4598e487c7fd8c8f8b64f70282734cf9669527a74"; \
     else \
-        echo "Unsupported Build Platfrom ${BUILDPLATFORM}"; \
+        echo "Unsupported build platform: ${BUILDPLATFORM}"; \
         exit 1; \
     fi; \
-    wget ${WASMVM_URL} -O /lib/${WASMVM_FILE}; \
-    CHECKSUM=`sha256sum /lib/${WASMVM_FILE} | cut -d" " -f1`; \
-    grep ${CHECKSUM} /tmp/checksums.txt; \
-    rm /tmp/checksums.txt 
+    echo "${WASMVM_SHA256}  /lib/libwasmvm_muslc.${WASMVM_ARCH}.a" | sha256sum -c -
+
+      
+#RUN --mount=type=cache,target=/root/.cache/go-build \
+#    --mount=type=cache,target=/root/go/pkg/mod \
+#    go mod download -x
+
+# Cosmwasm - Download correct libwasmvm version
+#RUN set -eux &&\
+    #WASMVM_VERSION=$(go list -m github.com/CosmWasm/wasmvm/v2 | cut -d ' ' -f 2) && \
+    #WASMVM_DOWNLOADS="https://github.com/CosmWasm/wasmvm/releases/download/${WASMVM_VERSION}"; \
+    #wget ${WASMVM_DOWNLOADS}/checksums.txt -O /tmp/checksums.txt; \
+    #if [ ${BUILDPLATFORM} = "linux/amd64" ]; then \
+        #WASMVM_URL="${WASMVM_DOWNLOADS}/libwasmvm_muslc.x86_64.a"; \
+        #WASMVM_FILE="libwasmvm_muslc.x86_64.a"; \
+    #elif [ ${BUILDPLATFORM} = "linux/arm64" ]; then \
+        #WASMVM_URL="${WASMVM_DOWNLOADS}/libwasmvm_muslc.aarch64.a"; \
+        #WASMVM_FILE="libwasmvm_muslc.aarch64.a"; \
+    ## elif [ ${BUILDPLATFORM} = "darwin/amd64" ]; then \
+    ##     WASMVM_URL="${WASMVM_DOWNLOADS}/libwasmvm.dylib"; \        
+    ## elif [ ${BUILDPLATFORM} = "darwin/arm64" ]; then \
+    ##     WASMVM_URL="${WASMVM_DOWNLOADS}/libwasmvm.dylib"; \        
+    #else \
+        #echo "Unsupported Build Platfrom ${BUILDPLATFORM}"; \
+        #exit 1; \
+    #fi; \
+    #wget ${WASMVM_URL} -O /lib/${WASMVM_FILE}; \
+    #CHECKSUM=`sha256sum /lib/${WASMVM_FILE} | cut -d" " -f1`; \
+    #grep ${CHECKSUM} /tmp/checksums.txt; \
+    #rm /tmp/checksums.txt 
 
 ###############################################################################
 
@@ -90,6 +114,8 @@ ARG GOOS=linux \
 
 ENV GOOS=$GOOS \ 
     GOARCH=$GOARCH
+
+ENV GOPROXY=file:///modcache,https://proxy.golang.org,direct
 
 # Copy the remaining files
 COPY . .
@@ -102,15 +128,20 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
         -tags "netgo,muslc" \
         -ldflags " \
             -w -s -linkmode=external -extldflags \
-            '-L/go/src/mimalloc/build -lmimalloc -Wl,-z,muldefs -static' \
+            '-L/go/src/mimalloc/build -lmimalloc -Wl,-z,muldefs -static-pie -z noexecstack' \
             -X github.com/cosmos/cosmos-sdk/version.Name='terrad' \
             -X github.com/cosmos/cosmos-sdk/version.AppName='terrad' \
             -X github.com/cosmos/cosmos-sdk/version.Version=${GIT_VERSION} \
             -X github.com/cosmos/cosmos-sdk/version.Commit=${GIT_COMMIT} \
             -X github.com/cosmos/cosmos-sdk/version.BuildTags='netgo,muslc' \
         " \
+        -buildmode=pie \
         -trimpath \
         ./...
+
+# Strip the RPATH/RUNPATH baked in by the external linker so the released
+# binary does not try to load libraries from build-time paths
+RUN patchelf --remove-rpath /go/bin/terrad
 
 ################################################################################
 
