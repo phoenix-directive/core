@@ -66,10 +66,10 @@ RUN apk add --no-cache xz \
 RUN set -eux; \
     if [ "${BUILDPLATFORM}" = "linux/amd64" ]; then \
         WASMVM_ARCH="x86_64"; \
-        WASMVM_SHA256="3032aa5b8d486625327073dc60e007bcebd5a6202cdcecb7d5b21ca8bc0a4889"; \
+        WASMVM_SHA256="c2e4018d532138fad3113a140ccb6c73cfa41b5c9889633b08299e59568616b9"; \
     elif [ "${BUILDPLATFORM}" = "linux/arm64" ]; then \
         WASMVM_ARCH="aarch64"; \
-        WASMVM_SHA256="ebd660d24d0d698c4784f8d4598e487c7fd8c8f8b64f70282734cf9669527a74"; \
+        WASMVM_SHA256="0b52937b401b5595232c91ab98e4645f5fdcc86220105a6eab60eba938cf8f46"; \
     else \
         echo "Unsupported build platform: ${BUILDPLATFORM}"; \
         exit 1; \

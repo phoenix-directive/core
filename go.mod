@@ -19,7 +19,7 @@ require (
 	cosmossdk.io/x/tx v0.13.8
 	cosmossdk.io/x/upgrade v0.1.4
 	github.com/CosmWasm/wasmd v0.54.9
-	github.com/CosmWasm/wasmvm/v2 v2.2.9-rc.2
+	github.com/CosmWasm/wasmvm/v2 v2.2.9-rc.3
 	github.com/cometbft/cometbft v0.38.21
 	github.com/cometbft/cometbft-db v0.14.1 // indirect
 	github.com/cosmos/btcutil v1.0.5 // indirect
@@ -226,8 +226,8 @@ require (
 
 replace (
 	github.com/99designs/keyring => github.com/cosmos/keyring v1.2.0
-	github.com/CosmWasm/wasmd => github.com/CosmWasm/priv_wasmd_sec v0.54.10-rc.2
-	github.com/CosmWasm/wasmvm/v2 => github.com/CosmWasm/priv_wasmvm_sec/v2 v2.2.9-rc.2
+	github.com/CosmWasm/wasmd => github.com/CosmWasm/priv_wasmd_sec v0.54.10-rc.3
+	github.com/CosmWasm/wasmvm/v2 => github.com/CosmWasm/priv_wasmvm_sec/v2 v2.2.9-rc.3
 	github.com/cosmos/cosmos-sdk => github.com/phoenix-directive/cosmos-sdk v0.50.15-terra.0
 	github.com/cosmos/ledger-cosmos-go => ./ledger-go
 	github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
