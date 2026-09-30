@@ -54,56 +54,34 @@ WORKDIR ${GOPATH}/src/app
 COPY ledger-go ./ledger-go
 COPY go.mod go.sum  ./
 
-# Hotfix to wire private wasmd
-COPY .modcache/ /modcache/
-ENV GOPROXY=file:///modcache,https://proxy.golang.org,direct
+      
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/root/go/pkg/mod \
     go mod download -x
-RUN apk add --no-cache xz \
- && unxz -c "$(go list -mod=readonly -m -f '{{.Dir}}' github.com/CosmWasm/wasmvm/v2)/internal/api/libwasmvm_muslc.$(uname -m).a.xz" \
-      > "/lib/libwasmvm_muslc.$(uname -m).a"
-RUN set -eux; \
-    if [ "${BUILDPLATFORM}" = "linux/amd64" ]; then \
-        WASMVM_ARCH="x86_64"; \
-        WASMVM_SHA256="c2e4018d532138fad3113a140ccb6c73cfa41b5c9889633b08299e59568616b9"; \
-    elif [ "${BUILDPLATFORM}" = "linux/arm64" ]; then \
-        WASMVM_ARCH="aarch64"; \
-        WASMVM_SHA256="0b52937b401b5595232c91ab98e4645f5fdcc86220105a6eab60eba938cf8f46"; \
-    else \
-        echo "Unsupported build platform: ${BUILDPLATFORM}"; \
-        exit 1; \
-    fi; \
-    echo "${WASMVM_SHA256}  /lib/libwasmvm_muslc.${WASMVM_ARCH}.a" | sha256sum -c -
-
-      
-#RUN --mount=type=cache,target=/root/.cache/go-build \
-#    --mount=type=cache,target=/root/go/pkg/mod \
-#    go mod download -x
 
 # Cosmwasm - Download correct libwasmvm version
-#RUN set -eux &&\
-    #WASMVM_VERSION=$(go list -m github.com/CosmWasm/wasmvm/v2 | cut -d ' ' -f 2) && \
-    #WASMVM_DOWNLOADS="https://github.com/CosmWasm/wasmvm/releases/download/${WASMVM_VERSION}"; \
-    #wget ${WASMVM_DOWNLOADS}/checksums.txt -O /tmp/checksums.txt; \
-    #if [ ${BUILDPLATFORM} = "linux/amd64" ]; then \
-        #WASMVM_URL="${WASMVM_DOWNLOADS}/libwasmvm_muslc.x86_64.a"; \
-        #WASMVM_FILE="libwasmvm_muslc.x86_64.a"; \
-    #elif [ ${BUILDPLATFORM} = "linux/arm64" ]; then \
-        #WASMVM_URL="${WASMVM_DOWNLOADS}/libwasmvm_muslc.aarch64.a"; \
-        #WASMVM_FILE="libwasmvm_muslc.aarch64.a"; \
-    ## elif [ ${BUILDPLATFORM} = "darwin/amd64" ]; then \
-    ##     WASMVM_URL="${WASMVM_DOWNLOADS}/libwasmvm.dylib"; \        
-    ## elif [ ${BUILDPLATFORM} = "darwin/arm64" ]; then \
-    ##     WASMVM_URL="${WASMVM_DOWNLOADS}/libwasmvm.dylib"; \        
-    #else \
-        #echo "Unsupported Build Platfrom ${BUILDPLATFORM}"; \
-        #exit 1; \
-    #fi; \
-    #wget ${WASMVM_URL} -O /lib/${WASMVM_FILE}; \
-    #CHECKSUM=`sha256sum /lib/${WASMVM_FILE} | cut -d" " -f1`; \
-    #grep ${CHECKSUM} /tmp/checksums.txt; \
-    #rm /tmp/checksums.txt 
+RUN set -eux &&\
+    WASMVM_VERSION=$(go list -m github.com/CosmWasm/wasmvm/v2 | cut -d ' ' -f 2) && \
+    WASMVM_DOWNLOADS="https://github.com/CosmWasm/wasmvm/releases/download/${WASMVM_VERSION}"; \
+    wget ${WASMVM_DOWNLOADS}/checksums.txt -O /tmp/checksums.txt; \
+    if [ ${BUILDPLATFORM} = "linux/amd64" ]; then \
+        WASMVM_URL="${WASMVM_DOWNLOADS}/libwasmvm_muslc.x86_64.a"; \
+        WASMVM_FILE="libwasmvm_muslc.x86_64.a"; \
+    elif [ ${BUILDPLATFORM} = "linux/arm64" ]; then \
+        WASMVM_URL="${WASMVM_DOWNLOADS}/libwasmvm_muslc.aarch64.a"; \
+        WASMVM_FILE="libwasmvm_muslc.aarch64.a"; \
+    elif [ ${BUILDPLATFORM} = "darwin/amd64" ]; then \
+         WASMVM_URL="${WASMVM_DOWNLOADS}/libwasmvm.dylib"; \        
+    elif [ ${BUILDPLATFORM} = "darwin/arm64" ]; then \
+         WASMVM_URL="${WASMVM_DOWNLOADS}/libwasmvm.dylib"; \        
+    else \
+        echo "Unsupported Build Platfrom ${BUILDPLATFORM}"; \
+        exit 1; \
+    fi; \
+    wget ${WASMVM_URL} -O /lib/${WASMVM_FILE}; \
+    CHECKSUM=`sha256sum /lib/${WASMVM_FILE} | cut -d" " -f1`; \
+    grep ${CHECKSUM} /tmp/checksums.txt; \
+    rm /tmp/checksums.txt 
 
 ###############################################################################
 
