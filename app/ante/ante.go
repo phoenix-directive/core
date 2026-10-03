@@ -3,6 +3,7 @@ package ante
 import (
 	ibcante "github.com/cosmos/ibc-go/v8/modules/core/ante"
 	ibckeeper "github.com/cosmos/ibc-go/v8/modules/core/keeper"
+	"github.com/terra-money/core/v2/app/ante/blacklist"
 	feesharekeeper "github.com/terra-money/core/v2/x/feeshare/keeper"
 
 	corestoretypes "cosmossdk.io/core/store"
@@ -55,6 +56,7 @@ func NewAnteHandler(options HandlerOptions) (sdk.AnteHandler, error) {
 		wasmkeeper.NewLimitSimulationGasDecorator(options.NodeConfig.SimulationGasLimit),
 		wasmkeeper.NewCountTXDecorator(options.TXCounterStoreService),
 		wasmkeeper.NewTxContractsDecorator(),
+		blacklist.NewBlacklistDecorator(),
 		ante.NewExtensionOptionsDecorator(options.ExtensionOptionChecker),
 		ante.NewValidateBasicDecorator(),
 		ante.NewTxTimeoutHeightDecorator(),

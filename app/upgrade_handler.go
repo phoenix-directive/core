@@ -19,6 +19,7 @@ import (
 	v2_2_0 "github.com/terra-money/core/v2/app/upgrades/v2.2.0"
 	v2_20 "github.com/terra-money/core/v2/app/upgrades/v2.20"
 	v2_21 "github.com/terra-money/core/v2/app/upgrades/v2.21"
+	v2_22 "github.com/terra-money/core/v2/app/upgrades/v2.22"
 	v2_3_0 "github.com/terra-money/core/v2/app/upgrades/v2.3.0"
 	v2_4 "github.com/terra-money/core/v2/app/upgrades/v2.4"
 	v2_5 "github.com/terra-money/core/v2/app/upgrades/v2.5"
@@ -196,6 +197,14 @@ func (app *TerraApp) RegisterUpgradeHandlers() {
 	app.Keepers.UpgradeKeeper.SetUpgradeHandler(
 		terraappconfig.Upgrade2_21,
 		v2_21.CreateUpgradeHandler(
+			app.GetModuleManager(),
+			app.GetConfigurator(),
+			app.Keepers,
+		),
+	)
+	app.Keepers.UpgradeKeeper.SetUpgradeHandler(
+		terraappconfig.Upgrade2_22,
+		v2_22.CreateUpgradeHandler(
 			app.GetModuleManager(),
 			app.GetConfigurator(),
 			app.Keepers,
