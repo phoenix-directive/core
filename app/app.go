@@ -199,6 +199,7 @@ func NewTerraApp(
 			IBCkeeper:             app.Keepers.IBCKeeper,
 			TXCounterStoreService: txCounterStoreService,
 			NodeConfig:            wasmConfig,
+			Codec:                 encodingConfig.Marshaler,
 		},
 	)
 	if err != nil {

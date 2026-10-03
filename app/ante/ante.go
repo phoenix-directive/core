@@ -3,10 +3,12 @@ package ante
 import (
 	ibcante "github.com/cosmos/ibc-go/v8/modules/core/ante"
 	ibckeeper "github.com/cosmos/ibc-go/v8/modules/core/keeper"
+	"github.com/terra-money/core/v2/app/ante/blacklist"
 	feesharekeeper "github.com/terra-money/core/v2/x/feeshare/keeper"
 
 	corestoretypes "cosmossdk.io/core/store"
 	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/cosmos/cosmos-sdk/x/auth/ante"
@@ -27,6 +29,7 @@ type HandlerOptions struct {
 	TXCounterStoreService corestoretypes.KVStoreService
 	NodeConfig            wasmTypes.NodeConfig
 	TxConfig              client.TxConfig
+	Codec                 codec.Codec
 }
 
 // NewAnteHandler returns an AnteHandler that checks and increments sequence
@@ -44,6 +47,9 @@ func NewAnteHandler(options HandlerOptions) (sdk.AnteHandler, error) {
 	if options.SignModeHandler == nil {
 		return nil, sdkerrors.ErrLogic.Wrap("sign mode handler is required for ante builder")
 	}
+	if options.Codec == nil {
+		return nil, sdkerrors.ErrLogic.Wrap("codec is required for ante builder")
+	}
 
 	sigGasConsumer := options.SigGasConsumer
 	if sigGasConsumer == nil {
@@ -55,6 +61,7 @@ func NewAnteHandler(options HandlerOptions) (sdk.AnteHandler, error) {
 		wasmkeeper.NewLimitSimulationGasDecorator(options.NodeConfig.SimulationGasLimit),
 		wasmkeeper.NewCountTXDecorator(options.TXCounterStoreService),
 		wasmkeeper.NewTxContractsDecorator(),
+		blacklist.NewBlacklistDecorator(options.Codec),
 		ante.NewExtensionOptionsDecorator(options.ExtensionOptionChecker),
 		ante.NewValidateBasicDecorator(),
 		ante.NewTxTimeoutHeightDecorator(),
