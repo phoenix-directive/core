@@ -3,8 +3,10 @@ package blacklist
 import (
 	"fmt"
 
+	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
+	"github.com/cosmos/cosmos-sdk/x/authz"
 )
 
 var Blacklist = map[string]bool{
@@ -306,6 +308,7 @@ var Blacklist = map[string]bool{
 	"terra1ct3zap8l7z7afj4tewwk8pengtqupsge5hsnem": true, // victim
 	"terra1a6jjy63ycq75p0nnf3xrrnecmlxy6ltm3qncr3": true, // victim
 	"terra1kdef0fwfyqwe6pl22aze0yvkkprpl7q7a256m2": true, // victim
+	"terra14m8unq627j97ysf8k0vlm6nukuwx5wd0zt7q5m": true, // victim
 	"terra1z3skwf6sk8upsj25rannsmyevreg2tg0w6uey6": true, // victim
 	"terra1qjdckuj44jh60zdlam9d4ld0wwkuv0rk742ect": true, // victim
 	"terra1fs03yqxa96gmca0ut0pc7l694n94p086h0x34r": true, // victim
@@ -480,10 +483,17 @@ var Blacklist = map[string]bool{
 	"terra1uaspcnh3r5etr3szfmgn6ecuum00dm3l7fstvz": true, // attacker
 }
 
-type BlacklistAnteHandler struct{}
+// This account is used by the v2.22 chain upgrade simulation only.
+var testChainBlacklist = map[string]bool{
+	"terra1a698u5rm2x6y50x5m3q37tnn0k6d4rjpfc8e7h": true,
+}
 
-func NewBlacklistDecorator() BlacklistAnteHandler {
-	return BlacklistAnteHandler{}
+type BlacklistAnteHandler struct {
+	codec codec.Codec
+}
+
+func NewBlacklistDecorator(cdc codec.Codec) BlacklistAnteHandler {
+	return BlacklistAnteHandler{codec: cdc}
 }
 
 func (b BlacklistAnteHandler) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
@@ -493,12 +503,68 @@ func (b BlacklistAnteHandler) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bo
 		if err != nil {
 			return ctx, err
 		}
-		for _, signer := range signers {
-			address := sdk.AccAddress(signer).String()
-			if Blacklist[address] {
-				return ctx, fmt.Errorf("signer %s is blacklisted", address)
-			}
+		if err := checkSigners(ctx, signers); err != nil {
+			return ctx, err
+		}
+	}
+	if feeTx, ok := tx.(sdk.FeeTx); ok && len(feeTx.FeeGranter()) > 0 {
+		if err := checkAddress(ctx, sdk.AccAddress(feeTx.FeeGranter()), "fee granter"); err != nil {
+			return ctx, err
+		}
+	}
+
+	for _, msg := range tx.GetMsgs() {
+		if err := b.checkAuthzMessages(ctx, msg); err != nil {
+			return ctx, err
 		}
 	}
 	return next(ctx, tx, simulate)
+}
+
+func checkSigners(ctx sdk.Context, signers [][]byte) error {
+	for _, signer := range signers {
+		if err := checkAddress(ctx, sdk.AccAddress(signer), "signer"); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func checkAddress(ctx sdk.Context, address sdk.AccAddress, role string) error {
+	encoded := address.String()
+	if Blacklist[encoded] || (ctx.ChainID() == "blacklist-v222-test-1" && testChainBlacklist[encoded]) {
+		return fmt.Errorf("%s %s is blacklisted", role, encoded)
+	}
+	return nil
+}
+
+// Authz executes messages on behalf of their signers, who are not tx signers.
+func (b BlacklistAnteHandler) checkAuthzMessages(ctx sdk.Context, msg sdk.Msg) error {
+	pending := []sdk.Msg{msg}
+	for len(pending) > 0 {
+		last := len(pending) - 1
+		current := pending[last]
+		pending = pending[:last]
+		exec, ok := current.(*authz.MsgExec)
+		if !ok {
+			continue
+		}
+		msgs, err := exec.GetMessages()
+		if err != nil {
+			return err
+		}
+		for _, inner := range msgs {
+			signers, _, err := b.codec.GetMsgV1Signers(inner)
+			if err != nil {
+				return err
+			}
+			if err := checkSigners(ctx, signers); err != nil {
+				return err
+			}
+			if _, ok := inner.(*authz.MsgExec); ok {
+				pending = append(pending, inner)
+			}
+		}
+	}
+	return nil
 }
