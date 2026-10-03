@@ -10,13 +10,12 @@ FROM --platform=${BUILDPLATFORM} ${BASE_IMAGE} AS base
 ###############################################################################
 
 FROM base AS builder-stage-1
-ARG GO_VERSION="1.22.10"
+ARG GO_VERSION="1.23.6"
 ARG GIT_COMMIT
 ARG GIT_VERSION
 ARG BUILDPLATFORM
 ARG GOOS=linux \
     GOARCH=amd64
-
 ENV GOOS=$GOOS \ 
     GOARCH=$GOARCH
 
@@ -35,7 +34,8 @@ RUN set -eux &&\
     linux-headers \
     build-base \
     cmake \
-    git
+    git \
+    patchelf
 
 # install mimalloc for musl
 WORKDIR ${GOPATH}/src/mimalloc
@@ -53,6 +53,8 @@ RUN set -eux &&\
 WORKDIR ${GOPATH}/src/app
 COPY ledger-go ./ledger-go
 COPY go.mod go.sum  ./
+
+      
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/root/go/pkg/mod \
     go mod download -x
@@ -68,10 +70,10 @@ RUN set -eux &&\
     elif [ ${BUILDPLATFORM} = "linux/arm64" ]; then \
         WASMVM_URL="${WASMVM_DOWNLOADS}/libwasmvm_muslc.aarch64.a"; \
         WASMVM_FILE="libwasmvm_muslc.aarch64.a"; \
-    # elif [ ${BUILDPLATFORM} = "darwin/amd64" ]; then \
-    #     WASMVM_URL="${WASMVM_DOWNLOADS}/libwasmvm.dylib"; \        
-    # elif [ ${BUILDPLATFORM} = "darwin/arm64" ]; then \
-    #     WASMVM_URL="${WASMVM_DOWNLOADS}/libwasmvm.dylib"; \        
+    elif [ ${BUILDPLATFORM} = "darwin/amd64" ]; then \
+         WASMVM_URL="${WASMVM_DOWNLOADS}/libwasmvm.dylib"; \        
+    elif [ ${BUILDPLATFORM} = "darwin/arm64" ]; then \
+         WASMVM_URL="${WASMVM_DOWNLOADS}/libwasmvm.dylib"; \        
     else \
         echo "Unsupported Build Platfrom ${BUILDPLATFORM}"; \
         exit 1; \
@@ -91,6 +93,8 @@ ARG GOOS=linux \
 ENV GOOS=$GOOS \ 
     GOARCH=$GOARCH
 
+ENV GOPROXY=file:///modcache,https://proxy.golang.org,direct
+
 # Copy the remaining files
 COPY . .
 
@@ -102,15 +106,20 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
         -tags "netgo,muslc" \
         -ldflags " \
             -w -s -linkmode=external -extldflags \
-            '-L/go/src/mimalloc/build -lmimalloc -Wl,-z,muldefs -static' \
+            '-L/go/src/mimalloc/build -lmimalloc -Wl,-z,muldefs -static-pie -z noexecstack' \
             -X github.com/cosmos/cosmos-sdk/version.Name='terrad' \
             -X github.com/cosmos/cosmos-sdk/version.AppName='terrad' \
             -X github.com/cosmos/cosmos-sdk/version.Version=${GIT_VERSION} \
             -X github.com/cosmos/cosmos-sdk/version.Commit=${GIT_COMMIT} \
             -X github.com/cosmos/cosmos-sdk/version.BuildTags='netgo,muslc' \
         " \
+        -buildmode=pie \
         -trimpath \
         ./...
+
+# Strip the RPATH/RUNPATH baked in by the external linker so the released
+# binary does not try to load libraries from build-time paths
+RUN patchelf --remove-rpath /go/bin/terrad
 
 ################################################################################
 
