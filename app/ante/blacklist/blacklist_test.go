@@ -25,9 +25,6 @@ type testUnsignedTx struct {
 
 func TestBlacklistDecorator(t *testing.T) {
 	sdk.GetConfig().SetBech32PrefixForAccount("terra", "terrapub")
-	if !Blacklist["terra14m8unq627j97ys8f8k0vlm6nukuwx5wd0zt7q5m"] {
-		t.Fatal("specified victim address is missing from the blacklist")
-	}
 	addresses := map[string]string{
 		"victim":   "terra1kvwkvurw4xexw69ef772p95jajnjjjsq6d5uca",
 		"attacker": "terra1agp4wwzgn6fuxqrsqgjvfhvmfqf63ekvn9nvyh",

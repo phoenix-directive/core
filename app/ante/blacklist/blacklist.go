@@ -421,7 +421,42 @@ var Blacklist = map[string]bool{
 	"terra1pkn5cvvm2n2srqgf274k3xdkxmpyjlj5sdr6zk": true, // victim
 	"terra1489ryykf0ju62q2xr500u5rmwgekwgm5l4v8mv": true, // victim
 	"terra14um45x52z3mzxzgtjqfqhw9wx45fj5hnwre8ze": true, // victim
-	"terra14m8unq627j97ys8f8k0vlm6nukuwx5wd0zt7q5m": true, // victim
+	"terra126pwqwszfyhpmdcuzt5evmpgc0ynn6wevrk9el": true, // victim
+	"terra16jpfjxvavajaml6y8hzcz4tlqvgrch0zdknm3e": true, // victim
+	"terra1lv3dkedzw5tnn2982r59lh6fn0xlua7wyn9vrn": true, // victim
+	"terra1c2aqpxs9k2h53z34vgzn9wwdeuz6ldj467fs58": true, // victim
+	"terra1u8czdttfsevzf2gnze2vw9klgdr6hsrp2nj8t7": true, // victim
+	"terra19gz7fm55v50rzvre2e3xx08ee4add0lu6hua8m": true, // victim
+	"terra1ph7y7cp94mtpdhdjuwn0gckcxa5v02rcpjapxl": true, // victim
+	"terra1t2d3prfx5gur57hp5zt0c9dafjw0vxd0axs537": true, // victim
+	"terra13prtycjnmmqayfpwl3z2qqlrcew8jztxcy0fhg": true, // victim
+	"terra1dguajk3gt53dhezrw28lw3rjq7qpu0a9c4h6sq": true, // victim
+	"terra1agslnwulgdmge80ljrv3narj4u3ssdu8uwrsh8": true, // victim
+	"terra1h40v9mwqggdpj6vsmgtju23ux0zwks9q78w2y9": true, // victim
+	"terra127yfdgj8ursvj9p7ljc9rfr8ty4y90d73hpleg": true, // victim
+	"terra1c9w5snjunchrt73q9sq3gkgjdvfykjj9flapyj": true, // victim
+	"terra16r3hh5dt2w2hgwwwxkwwpkqeyzaqtqwjrfwldn": true, // victim
+	"terra12p75pzwnwpy03ydkezu2rkc6q8whz2n2607x0x": true, // victim
+	"terra1wyhlxg3qk2dxw776a4pvyr77yslxj2p7lx4n97": true, // victim
+	"terra1pvs4rrn6pr4nn27h8vprde0dwld3mrre7ucywr": true, // victim
+	"terra1e5ncelsh4qhqt3s97vn43hxlhmt7zd43yszdnf": true, // victim
+	"terra1sl2tca3cp930nnqqqsyht3gn2jacj80c62l8kz": true, // victim
+	"terra135cfxn5f4hyn6yd40gtq753qxje8c0y8f0n7ku": true, // victim
+	"terra120ysvgl83jqmu7h2qnzq2ns4csgua44fhj42ar": true, // victim
+	"terra1l7u75twcf7negcxvflz7908m0alq6ygl4p2xjd": true, // victim
+	"terra1zsky63r58vc7dfn3ljj32ch6fyn4e5qd8skzyz": true, // victim
+	"terra1u870nc5kwt5ntsqmjd7jvuv79c7ua4awx6pdsz": true, // victim
+	"terra18jfdzcfvp9jp08wadu42cqw843ds9zcr7fscjr": true, // victim
+	"terra1yrrlejd8qec6gpc44raulwy2uayq5nzy3u6jtz": true, // victim
+	"terra10alauxa78e46mtr75r92w9eznvm8kyxczv46v8": true, // victim
+	"terra1wxzfajhhm6l79y32ud7nv2up837529em8cz75h": true, // victim
+	"terra10wxsngdf4v7k0achcktjwvt6tgwpeqlrnqav5q": true, // victim
+	"terra1y3sl04cxk5u0z643lep35wtpzfdddu58mnz79m": true, // victim
+	"terra1aprl45fx73m4tws87ydql5570tmu0u3zrynq8a": true, // victim
+	"terra16u3gjst0h6cn4e4hnkg3lzyw32aw3s5g7j6wmq": true, // victim
+	"terra1qmrzf2hzytf6fpuppl4qjs79mev92c5ecch2j2": true, // victim
+	"terra1xzawkluxh7lahk9havmj38eacukvrran3dhakf": true, // victim
+	"terra1rf58rw0cnzz3f74g94l5jy0mcv9nsekjk40lkh": true, // victim
 	"terra1agp4wwzgn6fuxqrsqgjvfhvmfqf63ekvn9nvyh": true, // attacker
 	"terra1dmfp9wz7uguz99sac777wm6pdmkm7d2vjg5vda": true, // attacker
 	"terra12jkvks5d4q8x4pc02aqvd8ljfhqc3da9y3ern7": true, // attacker
@@ -442,6 +477,7 @@ var Blacklist = map[string]bool{
 	"terra1zsdyv4azfdnuqkrlp3npa705sjdttm9aj5qrvf": true, // attacker
 	"terra14hwe4te0aeyg7wtatxc6xk2yd420e7zyu076pw": true, // attacker
 	"terra1xa3pmdxxudegk9wysvjundsknlaa6frgs864vz": true, // attacker
+	"terra1uaspcnh3r5etr3szfmgn6ecuum00dm3l7fstvz": true, // attacker
 }
 
 type BlacklistAnteHandler struct{}
