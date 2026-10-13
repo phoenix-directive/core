@@ -2,6 +2,10 @@
 
 BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 COMMIT := $(shell git log -1 --format='%H')
+# Use the HEAD commit timestamp; callers can override it for reproducible builds.
+SOURCE_DATE_EPOCH ?= $(shell git log -1 --format=%ct)
+# Release archives require GNU tar. Set TAR=gtar on macOS.
+TAR ?= tar
 LEDGER_ENABLED ?= true
 BINDIR ?= $(GOPATH)/bin
 BUILDDIR ?= $(CURDIR)/build
@@ -164,7 +168,10 @@ build-release-amd64: go.sum $(BUILDDIR)/
 	$(DOCKER) rm -f core-builder || true
 	$(DOCKER) create -ti --name core-builder core:local-amd64
 	$(DOCKER) cp core-builder:/usr/local/bin/terrad $(BUILDDIR)/release/terrad
-	tar -czvf $(BUILDDIR)/release/terra_$(VERSION)_Linux_x86_64.tar.gz -C $(BUILDDIR)/release/ terrad
+	$(TAR) --format=ustar --sort=name --numeric-owner --owner=0 --group=0 \
+		--mode=0755 --mtime="@$(SOURCE_DATE_EPOCH)" \
+		-cf "$(BUILDDIR)/release/terra_$(VERSION)_Linux_x86_64.tar" -C "$(BUILDDIR)/release/" terrad
+	gzip -n -9 -f "$(BUILDDIR)/release/terra_$(VERSION)_Linux_x86_64.tar"
 	rm $(BUILDDIR)/release/terrad
 	$(DOCKER) rm -f core-builder
 
@@ -184,7 +191,10 @@ build-release-arm64: go.sum $(BUILDDIR)/
 	$(DOCKER) rm -f core-builder || true
 	$(DOCKER) create -ti --name core-builder core:local-arm64
 	$(DOCKER) cp core-builder:/usr/local/bin/terrad $(BUILDDIR)/release/terrad 
-	tar -czvf $(BUILDDIR)/release/terra_$(VERSION)_Linux_arm64.tar.gz -C $(BUILDDIR)/release/ terrad 
+	$(TAR) --format=ustar --sort=name --numeric-owner --owner=0 --group=0 \
+		--mode=0755 --mtime="@$(SOURCE_DATE_EPOCH)" \
+		-cf "$(BUILDDIR)/release/terra_$(VERSION)_Linux_arm64.tar" -C "$(BUILDDIR)/release/" terrad
+	gzip -n -9 -f "$(BUILDDIR)/release/terra_$(VERSION)_Linux_arm64.tar"
 	rm $(BUILDDIR)/release/terrad
 	$(DOCKER) rm -f core-builder
 
