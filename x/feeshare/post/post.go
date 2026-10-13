@@ -55,7 +55,7 @@ func (fsd FeeSharePayoutDecorator) PostHandle(
 
 	err = fsd.FeeSharePayout(ctx, feeTx.GetFee(), params.DeveloperShares, params.AllowedDenoms)
 	if err != nil {
-		return ctx, errorsmod.Wrapf(sdkerrors.ErrLogic, err.Error())
+		return ctx, errorsmod.Wrap(sdkerrors.ErrLogic, err.Error())
 	}
 
 	return next(ctx, tx, simulate, success)

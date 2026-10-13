@@ -53,7 +53,7 @@ func (s *AppTestSuite) Setup() {
 		nil,
 		true,
 		map[int64]bool{},
-		terra_app.DefaultNodeHome,
+		s.T().TempDir(),
 		0,
 		encCfg,
 		simtestutil.EmptyAppOptions{},

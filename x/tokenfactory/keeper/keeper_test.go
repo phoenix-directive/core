@@ -15,8 +15,8 @@ import (
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 
-	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	bankkeeper "github.com/terra-money/core/v2/x/bank/keeper"
 
 	math "cosmossdk.io/math"
 
@@ -81,7 +81,7 @@ func (s *KeeperTestSuite) TestBurnFromModuleAccount() {
 
 	// Gov address
 	govAddr := s.App.Keepers.AccountKeeper.GetModuleAddress("gov")
-	s.App.Keepers.AccountKeeper.SetModuleAccount(s.Ctx, authtypes.NewModuleAccount(authtypes.NewBaseAccount(govAddr, nil, 0, 0), "gov", authtypes.Minter))
+	s.App.Keepers.AccountKeeper.SetModuleAccount(s.Ctx, authtypes.NewModuleAccount(authtypes.NewBaseAccount(govAddr, nil, s.App.Keepers.AccountKeeper.GetModuleAccount(s.Ctx, "gov").GetAccountNumber(), 0), "gov", authtypes.Minter))
 	ma := s.App.Keepers.AccountKeeper.GetAccount(s.Ctx, govAddr)
 	_, ok := ma.(authtypes.ModuleAccountI)
 	s.Require().True(ok)

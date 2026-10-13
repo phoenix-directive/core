@@ -1,19 +1,53 @@
-import { AccAddress, Coin, MsgTransfer, MsgSend, Coins } from "@terra-money/feather.js";
-import { blockInclusion, getEventsByIndex, getLCDClient, getMnemonics, getValueByIndexAndTypeAndKey } from "../../helpers";
-import { MsgRegisterInterchainAccount, MsgSendTx } from "@terra-money/feather.js/dist/core/ica/controller/v1/msgs";
-import { Height } from "@terra-money/feather.js/dist/core/ibc/core/client/Height";
-import Long from "long";
-import { InterchainAccountPacketData } from "@terra-money/feather.js/dist/core/ica/controller/v1/InterchainAccountPacketData";
-import { CosmosTx } from "@terra-money/feather.js/dist/core/ica/controller/v1/CosmosTx";
+import { AccAddress } from "@terra-money/feather.js";
+import { DirectSecp256k1HdWallet, EncodeObject, Registry } from "@cosmjs/proto-signing";
+import { defaultRegistryTypes, DeliverTxResponse, SigningStargateClient } from "@cosmjs/stargate";
+import { stringToPath } from "@cosmjs/crypto";
+import { blockInclusion, getEventsByIndex, getLCDClient, getMnemonics } from "../../helpers";
+import { MsgSend } from "cosmjs-types/cosmos/bank/v1beta1/tx";
+import { MsgTransfer } from "cosmjs-types/ibc/applications/transfer/v1/tx";
+import { MsgRegisterInterchainAccount, MsgSendTx } from "cosmjs-types/ibc/applications/interchain_accounts/controller/v1/tx";
+import { CosmosTx, InterchainAccountPacketData, Type } from "cosmjs-types/ibc/applications/interchain_accounts/v1/packet";
+import { Order } from "cosmjs-types/ibc/core/channel/v1/channel";
 
-describe("ICA Module (https://github.com/cosmos/ibc-go/tree/release/v7.3.x/modules/apps/27-interchain-accounts)", () => {
+const CHAIN_1_RPC = "http://localhost:16657";
+const CHAIN_1_ID = "test-1";
+const TERRA_HD_PATH = "m/44'/330'/0'/0/0";
+const COSMJS_FEE = {
+    amount: [{ denom: "uluna", amount: "22500" }],
+    gas: "900000", };
+
+describe("ICA Module", () => {
     // Prepare environment clients, accounts and wallets
     const LCD = getLCDClient();
     const { icaMnemonic } = getMnemonics();
-    const chain1Wallet = LCD.chain1.wallet(icaMnemonic);
     const externalAccAddr = icaMnemonic.accAddress("terra");
     let ibcCoinDenom: string | undefined;
     let intechainAccountAddr: AccAddress | undefined;
+    let chain1Cosmjs: SigningStargateClient;
+    let cosmjsRegistry: Registry;
+
+    beforeAll(async () => {
+        cosmjsRegistry = new Registry(defaultRegistryTypes);
+        cosmjsRegistry.register(MsgRegisterInterchainAccount.typeUrl, MsgRegisterInterchainAccount as any);
+        cosmjsRegistry.register(MsgTransfer.typeUrl, MsgTransfer as any);
+        cosmjsRegistry.register(MsgSendTx.typeUrl, MsgSendTx as any);
+        cosmjsRegistry.register(MsgSend.typeUrl, MsgSend as any);
+
+        const signer = await DirectSecp256k1HdWallet.fromMnemonic(icaMnemonic.mnemonic, {
+            prefix: "terra",
+            hdPaths: [stringToPath(TERRA_HD_PATH)],
+        });
+        const [account] = await signer.getAccounts();
+        expect(account.address).toStrictEqual(externalAccAddr);
+
+        chain1Cosmjs = await SigningStargateClient.connectWithSigner(CHAIN_1_RPC, signer, {
+            registry: cosmjsRegistry,
+        });
+    });
+
+    async function signAndBroadcastCosmjs(messages: EncodeObject[]): Promise<DeliverTxResponse> {
+        return chain1Cosmjs.signAndBroadcast(externalAccAddr, messages, COSMJS_FEE);
+    }
 
     const waitForInterchainAccount = async () => {
         for (let i = 0; i <= 10; i++) {
@@ -102,31 +136,65 @@ describe("ICA Module (https://github.com/cosmos/ibc-go/tree/release/v7.3.x/modul
         }
     });
 
-    test('Must creat the interchain account if des not already exist', async () => {
-        let tx = await chain1Wallet.createAndSignTx({
-            msgs: [new MsgRegisterInterchainAccount(
-                externalAccAddr,
-                "connection-0",
-                ""
-            )],
-            chainID: "test-1",
-        }).catch(e => {
-            const expectedMsg = "failed to execute message; message index: 0: existing active channel channel-1 for portID icacontroller-terra1p4kcrttuxj9kyyvv5px5ccgwf0yrw74yp7jqm6 on connection connection-0: active channel already set for this owner";
-            expect(e.response.data.message.startsWith(expectedMsg))
-                .toBeTruthy();
-        });
+    test('Must create the interchain account if des not already exist', async () => {
+        const registerMsg: EncodeObject = {
+            typeUrl: MsgRegisterInterchainAccount.typeUrl,
+            value: MsgRegisterInterchainAccount.fromPartial({
+                owner: externalAccAddr,
+                connectionId: "connection-0",
+                version: "",
+                ordering: Order.ORDER_ORDERED,
+            }),
+        };
+        const txResult = await signAndBroadcastCosmjs([registerMsg]);
 
-        if (tx !== undefined) {
-            let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
-            await blockInclusion();
-            let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
-            expect(txResult.code).toBe(0);
-            expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "message", "action"))
-                .toBe("/ibc.applications.interchain_accounts.controller.v1.MsgRegisterInterchainAccount");
-            expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "message", "sender"))
-                .toBe(externalAccAddr);
-            expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "message", "module"))
-                .toBe("ibc_channel");
+        if (txResult.code !== 0) {
+            expect(txResult.rawLog ?? "").toContain("existing active channel");
+            expect(txResult.rawLog ?? "").toContain("active channel already set for this owner");
+        } else {
+            expect(txResult.code).toStrictEqual(0);
+            const lcdTxResult = await LCD.chain1.tx.txInfo(txResult.transactionHash, CHAIN_1_ID) as any;
+            const events = getEventsByIndex(lcdTxResult.events, 0);
+
+            expect(events[0].type).toStrictEqual("message");
+            expect(events[0].attributes).toEqual(expect.arrayContaining([{
+                "index": true,
+                "key": "action",
+                "value": "/ibc.applications.interchain_accounts.controller.v1.MsgRegisterInterchainAccount"
+            }, {
+                "index": true,
+                "key": "sender",
+                "value": "terra1p4kcrttuxj9kyyvv5px5ccgwf0yrw74yp7jqm6"
+            }, {
+                "index": true,
+                "key": "msg_index",
+                "value": "0"
+            }]));
+            expect(events[2].type).toStrictEqual("message");
+            expect(events[2].attributes).toEqual(expect.arrayContaining([{
+                "index": true,
+                "key": "module",
+                "value": "ibc_channel"
+            }, {
+                "index": true,
+                "key": "msg_index",
+                "value": "0"
+            }]));
+
+            // Check during 15 blocks for the ICA handshake to finish.
+            for (let i = 0; i <= 15; i++) {
+                await blockInclusion();
+                let res = await LCD.chain1.icaV1.controllerAccountAddress(externalAccAddr, "connection-0")
+                    .catch((e) => {
+                        const expectMsg = "failed to retrieve account address for icacontroller-";
+                        expect(e.response.data.message.startsWith(expectMsg)).toBeTruthy();
+                    })
+                if (res) {
+                    expect(res.address).toBeDefined();
+                    intechainAccountAddr = res.address;
+                    break;
+                }
+            }
         }
 
         await waitForInterchainAccount();
@@ -137,23 +205,26 @@ describe("ICA Module (https://github.com/cosmos/ibc-go/tree/release/v7.3.x/modul
         test("Must send funds to the interchain account from chain-1 to chain-2", async () => {
             if (typeof intechainAccountAddr === "string") {
                 let blockHeight = (await LCD.chain1.tendermint.blockInfo("test-1")).block.header.height;
-                let tx = await chain1Wallet.createAndSignTx({
-                    msgs: [new MsgTransfer(
-                        "transfer",
-                        "channel-0",
-                        Coin.fromString("100000000uluna"),
-                        externalAccAddr,
-                        intechainAccountAddr as string,
-                        new Height(2, parseInt(blockHeight) + 100),
-                        undefined,
-                        ""
-                    )],
-                    chainID: "test-1",
-                });
+                const transferMsg: EncodeObject = {
+                    typeUrl: MsgTransfer.typeUrl,
+                    value: MsgTransfer.fromPartial({
+                        sourcePort: "transfer",
+                        sourceChannel: "channel-0",
+                        token: { denom: "uluna", amount: "100000000" },
+                        sender: externalAccAddr,
+                        receiver: intechainAccountAddr,
+                        timeoutHeight: {
+                            revisionNumber: 2n,
+                            revisionHeight: BigInt(parseInt(blockHeight) + 100),
+                        },
+                        timeoutTimestamp: 0n,
+                        memo: "",
+                        encoding: "",
+                    }),
+                };
 
-                let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
-                await blockInclusion();
-                let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
+                const txResult = await signAndBroadcastCosmjs([transferMsg]);
+                expect(txResult.code).toStrictEqual(0);
                 expect(txResult).toBeDefined();
                 // Check during 5 blocks for the receival 
                 // of the IBC coin on chain-2
@@ -175,28 +246,34 @@ describe("ICA Module (https://github.com/cosmos/ibc-go/tree/release/v7.3.x/modul
 
         test("Must control the interchain account from chain-1 to send funds on chain-2 from the account address to a burnAddress", async () => {
             const burnAddress = "terra1zdpgj8am5nqqvht927k3etljyl6a52kwqup0je";
-            let interchainAccountPacketData = new InterchainAccountPacketData(
-                new CosmosTx([new MsgSend(
-                    intechainAccountAddr as string,
-                    burnAddress,
-                    Coins.fromString("1000" + ibcCoinDenom),
-                )])
-            )
-            let msgSendTx = new MsgSendTx(
-                externalAccAddr,
-                "connection-0",
-                Long.fromString((new Date().getTime() * 1000000 + 600000000).toString()),
-                interchainAccountPacketData,
-            );
-            let tx = await chain1Wallet.createAndSignTx({
-                msgs: [msgSendTx],
-                chainID: "test-1",
+            const hostChainMsgSend: EncodeObject = {
+                typeUrl: MsgSend.typeUrl,
+                value: MsgSend.fromPartial({
+                    fromAddress: intechainAccountAddr as string,
+                    toAddress: burnAddress,
+                    amount: [{ denom: ibcCoinDenom, amount: "1000" }],
+                }),
+            };
+            const interchainAccountPacketData = InterchainAccountPacketData.fromPartial({
+                type: Type.TYPE_EXECUTE_TX,
+                data: CosmosTx.encode(CosmosTx.fromPartial({
+                    messages: [cosmjsRegistry.encodeAsAny(hostChainMsgSend)],
+                })).finish(),
+                memo: "",
             });
+            const msgSendTx: EncodeObject = {
+                typeUrl: MsgSendTx.typeUrl,
+                value: MsgSendTx.fromPartial({
+                    owner: externalAccAddr,
+                    connectionId: "connection-0",
+                    relativeTimeout: BigInt(Date.now()) * 1000000n + 600000000n,
+                    packetData: interchainAccountPacketData,
+                }),
+            };
 
-            let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
-            await blockInclusion();
-            await blockInclusion();
-            let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
+            const broadcastResult = await signAndBroadcastCosmjs([msgSendTx]);
+            expect(broadcastResult.code).toStrictEqual(0);
+            let txResult = await LCD.chain1.tx.txInfo(broadcastResult.transactionHash, CHAIN_1_ID) as any;
             const events = getEventsByIndex(txResult.events, 0);
             expect(events[0])
                 .toStrictEqual({

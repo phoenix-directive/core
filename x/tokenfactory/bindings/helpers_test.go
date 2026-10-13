@@ -23,13 +23,16 @@ import (
 	"github.com/CosmWasm/wasmd/x/wasm/keeper"
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	"github.com/terra-money/core/v2/app"
+	appparams "github.com/terra-money/core/v2/app/params"
 	tokenfactorytypes "github.com/terra-money/core/v2/x/tokenfactory/types"
 
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
 )
 
-func CreateTestInput() (*app.TerraApp, sdk.Context) {
+func CreateTestInput(t *testing.T) (*app.TerraApp, sdk.Context) {
+	t.Helper()
+	appparams.RegisterAddressesConfig()
 	encCfg := app.MakeEncodingConfig()
 	genesisState := app.NewDefaultGenesisState(encCfg.Marshaler)
 	genesisState.SetDefaultTerraConfig(encCfg.Marshaler)
@@ -41,7 +44,7 @@ func CreateTestInput() (*app.TerraApp, sdk.Context) {
 		nil,
 		true,
 		map[int64]bool{},
-		app.DefaultNodeHome,
+		t.TempDir(),
 		0,
 		encCfg,
 		simtestutil.EmptyAppOptions{},
@@ -122,7 +125,7 @@ func fundAccount(t *testing.T, ctx sdk.Context, app *app.TerraApp, addr sdk.AccA
 
 func SetupCustomApp(t *testing.T, addr sdk.AccAddress) (*app.TerraApp, sdk.Context) {
 	t.Helper()
-	app, ctx := CreateTestInput()
+	app, ctx := CreateTestInput(t)
 
 	storeReflectCode(t, ctx, app, addr)
 

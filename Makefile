@@ -7,7 +7,7 @@ BINDIR ?= $(GOPATH)/bin
 BUILDDIR ?= $(CURDIR)/build
 DOCKER := $(shell which docker)
 SHA256_CMD = sha256sum
-GO_VERSION ?= "1.23.6"
+GO_VERSION ?= "1.24.13"
 # don't override user values
 ifeq (,$(VERSION))
   VERSION := $(shell git describe --tags)
@@ -208,7 +208,7 @@ proto-swagger:
 	bash scripts/protoc-swagger-gen.sh
 
 update-swagger-docs:
-	$(BINDIR)/statik -src=client/docs/swagger-ui -dest=client/docs -f -m
+	statik -src=client/docs/swagger-ui -dest=client/docs -f -m
 	@if [ -n "$(git status --porcelain)" ]; then \
         echo "Swagger docs are out of sync!";\
         exit 1;\
@@ -267,7 +267,7 @@ benchmark:
 	@go test -mod=readonly -bench=. ./...
 
 simulate:
-	@go test  -bench BenchmarkSimulation ./app -NumBlocks=200 -BlockSize 50 -Commit=true -Verbose=true -Enabled=true -Seed 1
+	@go test  -bench BenchmarkSimulation ./app -NumBlocks=200 -BlockSize 50 -Commit=true -Verbose=false -Enabled=true -Seed 2
 
 
 test-e2e-pmf:

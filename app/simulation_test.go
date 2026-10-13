@@ -2,11 +2,13 @@ package app_test
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	log "cosmossdk.io/log"
 	dbm "github.com/cosmos/cosmos-db"
 
+	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	"github.com/stretchr/testify/require"
 	"github.com/terra-money/core/v2/app"
 	"github.com/terra-money/core/v2/app/keepers"
@@ -14,7 +16,6 @@ import (
 
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 
-	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	simulationtypes "github.com/cosmos/cosmos-sdk/types/simulation"
 	"github.com/cosmos/cosmos-sdk/x/simulation"
 	simcli "github.com/cosmos/cosmos-sdk/x/simulation/client/cli"
@@ -51,6 +52,7 @@ func BenchmarkSimulation(b *testing.B) {
 	})
 
 	encoding := app.MakeEncodingConfig()
+	homeDir := setupSimulationHome(b, dir)
 
 	terraApp := app.NewTerraApp(
 		logger,
@@ -58,7 +60,7 @@ func BenchmarkSimulation(b *testing.B) {
 		nil,
 		true,
 		map[int64]bool{},
-		app.DefaultNodeHome,
+		homeDir,
 		0,
 		encoding,
 		simtestutil.EmptyAppOptions{},
@@ -72,7 +74,7 @@ func BenchmarkSimulation(b *testing.B) {
 		terraApp.BaseApp,
 		simtestutil.AppStateFn(terraApp.GetAppCodec(), terraApp.SimulationManager(), terraApp.DefaultGenesis()),
 		simulationtypes.RandomAccounts,
-		simtestutil.SimulationOperations(terraApp, terraApp.GetAppCodec(), config),
+		simtestutil.BuildSimulationOperations(terraApp, terraApp.GetAppCodec(), config, encoding.TxConfig),
 		keepers.ModuleAccountAddrs(),
 		config,
 		terraApp.GetAppCodec(),
@@ -91,6 +93,7 @@ func BenchmarkSimulation(b *testing.B) {
 func TestSimulationManager(t *testing.T) {
 	db := dbm.NewMemDB()
 	encoding := app.MakeEncodingConfig()
+	homeDir := setupSimulationHome(t, t.TempDir())
 
 	terraApp := app.NewTerraApp(
 		log.NewNopLogger(),
@@ -98,7 +101,7 @@ func TestSimulationManager(t *testing.T) {
 		nil,
 		true,
 		map[int64]bool{},
-		app.DefaultNodeHome,
+		homeDir,
 		0,
 		encoding,
 		simtestutil.EmptyAppOptions{},
@@ -106,4 +109,10 @@ func TestSimulationManager(t *testing.T) {
 	)
 	sm := terraApp.SimulationManager()
 	require.NotNil(t, sm)
+}
+
+func setupSimulationHome(tb testing.TB, homeDir string) string {
+	tb.Helper()
+	require.NoError(tb, os.MkdirAll(filepath.Join(homeDir, "data"), 0o755))
+	return homeDir
 }
