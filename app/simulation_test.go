@@ -109,6 +109,9 @@ func TestSimulationManager(t *testing.T) {
 	)
 	sm := terraApp.SimulationManager()
 	require.NotNil(t, sm)
+	// Simulation only randomizes a subset of modules; the rest must retain
+	// their default genesis state so their block handlers are initialized.
+	require.Equal(t, app.NewDefaultGenesisState(terraApp.GetAppCodec()), app.GenesisState(terraApp.DefaultGenesis()))
 }
 
 func setupSimulationHome(tb testing.TB, homeDir string) string {

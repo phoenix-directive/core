@@ -95,8 +95,7 @@ type TerraApp struct {
 	invCheckPeriod uint
 
 	// the module manager
-	mm           *module.Manager
-	basicManager module.BasicManager
+	mm *module.Manager
 	// the configurator
 	configurator module.Configurator
 }
@@ -399,7 +398,7 @@ func (app TerraApp) GetAppCodec() codec.Codec {
 
 // DefaultGenesis returns a default genesis from the registered AppModuleBasic's.
 func (a *TerraApp) DefaultGenesis() map[string]json.RawMessage {
-	return a.basicManager.DefaultGenesis(a.appCodec)
+	return NewDefaultGenesisState(a.appCodec)
 }
 
 // LegacyAmino returns SimApp's amino codec.
