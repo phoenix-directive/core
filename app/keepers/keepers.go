@@ -359,22 +359,24 @@ func NewTerraAppKeepers(
 	transferIBCModule := ibctransfer.NewIBCModule(keepers.TransferKeeper)
 
 	hooksTransferStack := ibchooks.NewIBCMiddleware(&transferIBCModule, &keepers.HooksICS4Wrapper)
-	rateLimitedTransferStack := ratelimit.NewIBCMiddleware(keepers.RatelimitKeeper, hooksTransferStack)
 	keepers.PacketForwardKeeper = *packetforwardkeeper.NewKeeper(
 		appCodec,
 		runtime.NewKVStoreService(keepers.keys[packetforwardtypes.StoreKey]),
 		keepers.TransferKeeper,
 		keepers.IBCKeeper.ChannelKeeper,
 		keepers.BankKeeper,
-		keepers.IBCKeeper.ChannelKeeper,
+		keepers.RatelimitKeeper,
 		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
 	)
-	keepers.TransferStack = packetforward.NewIBCMiddleware(
-		rateLimitedTransferStack,
+	forwardTransferStack := packetforward.NewIBCMiddleware(
+		hooksTransferStack,
 		&keepers.PacketForwardKeeper,
 		5,
 		packetforwardkeeper.DefaultForwardTransferPacketTimeoutTimestamp,
 	)
+	// Rate limiting must see PFM acknowledgements and terminal timeouts. PFM also
+	// writes deferred acknowledgements through the rate limiter to undo failed inflows.
+	keepers.TransferStack = ratelimit.NewIBCMiddleware(keepers.RatelimitKeeper, forwardTransferStack)
 
 	keepers.ICAControllerKeeper = icacontrollerkeeper.NewKeeper(
 		appCodec,

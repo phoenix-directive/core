@@ -3,6 +3,8 @@ package interchaintest
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -19,6 +21,7 @@ import (
 
 	math "cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	govv1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
 )
 
 type PacketMetadata struct {
@@ -51,6 +54,16 @@ func TestPMF(t *testing.T) {
 	)
 
 	baseCfg := config
+	// Leave enough time for the proposal/query/vote Docker commands on slower hosts.
+	genesis := append([]cosmos.GenesisKV{}, defaultGenesisKV...)
+	genesis = append(genesis, cosmos.GenesisKV{Key: "app_state.gov.params.voting_period", Value: "60s"})
+	baseCfg.ModifyGenesis = cosmos.ModifyGenesis(genesis)
+	// Allow testing a freshly built image without replacing the default image.
+	if tag := os.Getenv("PFM_IMAGE_TAG"); tag != "" {
+		image := Image
+		image.Version = tag
+		baseCfg.Images = []ibc.DockerImage{image}
+	}
 
 	// Set specific chain ids for each so they are their own unique networks
 	baseCfg.ChainID = chainID_A
@@ -274,5 +287,161 @@ func TestPMF(t *testing.T) {
 		require.Equal(t, transferAmount, firstHopEscrowBalance)
 		require.Equal(t, transferAmount, secondHopEscrowBalance)
 		require.Equal(t, transferAmount, thirdHopEscrowBalance)
+	})
+	if t.Failed() {
+		return
+	}
+
+	// The first transfer seeds B with A's voucher. Its supply is stable, unlike
+	// native uluna, so the quota snapshot and the expected flow are deterministic.
+	authority, err := chainB.GetGovernanceAddress(ctx)
+	require.NoError(t, err)
+	var messages []json.RawMessage
+	for _, limit := range []struct {
+		channel, send, recv string
+	}{
+		{baChan.ChannelID, "10", "10"},
+		{bcChan.ChannelID, "5", "10"},
+	} {
+		message, err := json.Marshal(map[string]string{
+			"@type": "/ratelimit.v1.MsgAddRateLimit", "authority": authority,
+			"denom": firstHopIBCDenom, "channel_or_client_id": limit.channel,
+			"max_percent_send": limit.send, "max_percent_recv": limit.recv,
+			"duration_hours": "24",
+		})
+		require.NoError(t, err)
+		messages = append(messages, message)
+	}
+	proposal, err := chainB.SubmitProposal(ctx, userB.KeyName(), cosmos.TxProposalv1{
+		Messages: messages, Deposit: "550000000" + chainB.Config().Denom,
+		Title: "Meter forwarded transfers", Summary: "Exercise PFM rate limit accounting",
+	})
+	require.NoError(t, err)
+	proposalID, err := strconv.ParseUint(proposal.ProposalID, 10, 64)
+	require.NoError(t, err)
+	require.NoError(t, chainB.VoteOnProposalAllValidators(ctx, proposalID, cosmos.ProposalVoteYes))
+	_, err = cosmos.PollForProposalStatusV1(ctx, chainB, proposal.Height, proposal.Height+45, proposalID, govv1.StatusPassed)
+	require.NoError(t, err)
+
+	type flow struct {
+		Inflow       math.Int `json:"inflow"`
+		Outflow      math.Int `json:"outflow"`
+		ChannelValue math.Int `json:"channel_value"`
+	}
+	queryFlow := func(t *testing.T, channel string) flow {
+		t.Helper()
+		response, _, err := chainB.GetNode().ExecQuery(ctx, "ratelimit", "rate-limit", channel, "--denom", firstHopIBCDenom)
+		require.NoError(t, err)
+		var limit struct {
+			Flow flow `json:"flow"`
+		}
+		require.NoError(t, json.Unmarshal(response, &limit))
+		require.True(t, limit.Flow.ChannelValue.Equal(transferAmount), "unexpected quota snapshot: %s", response)
+		return limit.Flow
+	}
+	assertFlows := func(t *testing.T, amount math.Int) {
+		t.Helper()
+		incoming := queryFlow(t, baChan.ChannelID)
+		outgoing := queryFlow(t, bcChan.ChannelID)
+		require.True(t, incoming.Inflow.Equal(amount), "incoming flow: %s != %s", incoming.Inflow, amount)
+		require.True(t, incoming.Outflow.IsZero())
+		require.True(t, outgoing.Outflow.Equal(amount), "outgoing flow: %s != %s", outgoing.Outflow, amount)
+		require.True(t, outgoing.Inflow.IsZero())
+	}
+	sendForward := func(t *testing.T, receiver string, amount math.Int, timeout time.Duration, retries *uint8) (ibc.Tx, int64) {
+		t.Helper()
+		memo, err := json.Marshal(PacketMetadata{Forward: &ForwardMetadata{
+			Receiver: receiver, Port: bcChan.PortID, Channel: bcChan.ChannelID,
+			Timeout: timeout, Retries: retries,
+		}})
+		require.NoError(t, err)
+		height, err := chainA.Height(ctx)
+		require.NoError(t, err)
+		tx, err := chainA.SendIBCTransfer(ctx, abChan.ChannelID, userA.KeyName(), ibc.WalletAmount{
+			Address: userB.FormattedAddress(), Denom: chainA.Config().Denom, Amount: amount,
+		}, ibc.TransferOptions{Memo: string(memo)})
+		require.NoError(t, err)
+		return tx, height
+	}
+	waitAck := func(t *testing.T, tx ibc.Tx, height int64, success bool) {
+		t.Helper()
+		ack, err := testutil.PollForAck(ctx, chainA, height, height+60, tx.Packet)
+		require.NoError(t, err)
+		// PollForAck finds the message in a block before its application state is
+		// necessarily committed. Wait before asserting refunds and flow counters.
+		require.NoError(t, testutil.WaitForBlocks(ctx, 2, chainA, chainB))
+		var response struct {
+			Result string `json:"result"`
+			Error  string `json:"error"`
+		}
+		require.NoError(t, json.Unmarshal(ack.Acknowledgement, &response))
+		if success {
+			require.Empty(t, response.Error)
+			require.NotEmpty(t, response.Result)
+		} else {
+			require.NotEmpty(t, response.Error)
+		}
+	}
+
+	forwardAmount := transferAmount.QuoRaw(100) // 1% of the quota snapshot
+	t.Run("forwarded success is counted on both B channels", func(t *testing.T) {
+		tx, height := sendForward(t, userC.FormattedAddress(), forwardAmount, time.Minute, nil)
+		waitAck(t, tx, height, true)
+		assertFlows(t, forwardAmount)
+		balance, err := chainC.GetBalance(ctx, userC.FormattedAddress(), secondHopIBCDenom)
+		require.NoError(t, err)
+		require.True(t, balance.Equal(forwardAmount))
+	})
+	if t.Failed() {
+		return
+	}
+
+	assertRefund := func(t *testing.T, send func() (ibc.Tx, int64)) {
+		t.Helper()
+		before, err := chainA.GetBalance(ctx, userA.FormattedAddress(), chainA.Config().Denom)
+		require.NoError(t, err)
+		tx, height := send()
+		waitAck(t, tx, height, false)
+		after, err := chainA.GetBalance(ctx, userA.FormattedAddress(), chainA.Config().Denom)
+		require.NoError(t, err)
+		require.True(t, before.Equal(after), "source funds were not refunded")
+		assertFlows(t, forwardAmount)
+	}
+	t.Run("destination error undoes forwarded inflow and outflow", func(t *testing.T) {
+		assertRefund(t, func() (ibc.Tx, int64) {
+			return sendForward(t, "invalid-receiver", forwardAmount, time.Minute, nil)
+		})
+	})
+	if t.Failed() {
+		return
+	}
+	t.Run("terminal forward timeout undoes inflow and outflow", func(t *testing.T) {
+		// Relay A->B but leave B->C unrelayed until its short timeout expires.
+		require.NoError(t, r.StopRelayer(ctx, eRep))
+		require.NoError(t, r.StartRelayer(ctx, eRep, pathAB))
+		assertRefund(t, func() (ibc.Tx, int64) {
+			noRetries := uint8(0)
+			tx, height := sendForward(t, userC.FormattedAddress(), forwardAmount, 5*time.Second, &noRetries)
+			require.NoError(t, testutil.WaitForBlocks(ctx, 8, chainA, chainB, chainC))
+			// The receive is asynchronous: retain its accounting until the final ack.
+			assertFlows(t, forwardAmount.MulRaw(2))
+			require.NoError(t, r.StopRelayer(ctx, eRep))
+			require.NoError(t, r.StartRelayer(ctx, eRep, pathAB, pathBC, pathCD))
+			return tx, height
+		})
+	})
+	if t.Failed() {
+		return
+	}
+	t.Run("forward cannot exceed B outbound quota", func(t *testing.T) {
+		assertRefund(t, func() (ibc.Tx, int64) {
+			// 1% already sent + 5% exceeds B->C's 5% send limit, but not A->B's 10% receive limit.
+			return sendForward(t, userC.FormattedAddress(), forwardAmount.MulRaw(5), time.Minute, nil)
+		})
+	})
+	t.Run("forward cannot exceed B inbound quota", func(t *testing.T) {
+		assertRefund(t, func() (ibc.Tx, int64) {
+			return sendForward(t, userC.FormattedAddress(), transferAmount.QuoRaw(10), time.Minute, nil)
+		})
 	})
 }
