@@ -2,12 +2,16 @@
 
 BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 COMMIT := $(shell git log -1 --format='%H')
+# Use the HEAD commit timestamp; callers can override it for reproducible builds.
+SOURCE_DATE_EPOCH ?= $(shell git log -1 --format=%ct)
+# Release archives require GNU tar. Set TAR=gtar on macOS.
+TAR ?= tar
 LEDGER_ENABLED ?= true
 BINDIR ?= $(GOPATH)/bin
 BUILDDIR ?= $(CURDIR)/build
 DOCKER := $(shell which docker)
 SHA256_CMD = sha256sum
-GO_VERSION ?= "1.23.6"
+GO_VERSION ?= "1.24.13"
 # don't override user values
 ifeq (,$(VERSION))
   VERSION := $(shell git describe --tags)
@@ -164,7 +168,10 @@ build-release-amd64: go.sum $(BUILDDIR)/
 	$(DOCKER) rm -f core-builder || true
 	$(DOCKER) create -ti --name core-builder core:local-amd64
 	$(DOCKER) cp core-builder:/usr/local/bin/terrad $(BUILDDIR)/release/terrad
-	tar -czvf $(BUILDDIR)/release/terra_$(VERSION)_Linux_x86_64.tar.gz -C $(BUILDDIR)/release/ terrad
+	$(TAR) --format=ustar --sort=name --numeric-owner --owner=0 --group=0 \
+		--mode=0755 --mtime="@$(SOURCE_DATE_EPOCH)" \
+		-cf "$(BUILDDIR)/release/terra_$(VERSION)_Linux_x86_64.tar" -C "$(BUILDDIR)/release/" terrad
+	gzip -n -9 -f "$(BUILDDIR)/release/terra_$(VERSION)_Linux_x86_64.tar"
 	rm $(BUILDDIR)/release/terrad
 	$(DOCKER) rm -f core-builder
 
@@ -184,7 +191,10 @@ build-release-arm64: go.sum $(BUILDDIR)/
 	$(DOCKER) rm -f core-builder || true
 	$(DOCKER) create -ti --name core-builder core:local-arm64
 	$(DOCKER) cp core-builder:/usr/local/bin/terrad $(BUILDDIR)/release/terrad 
-	tar -czvf $(BUILDDIR)/release/terra_$(VERSION)_Linux_arm64.tar.gz -C $(BUILDDIR)/release/ terrad 
+	$(TAR) --format=ustar --sort=name --numeric-owner --owner=0 --group=0 \
+		--mode=0755 --mtime="@$(SOURCE_DATE_EPOCH)" \
+		-cf "$(BUILDDIR)/release/terra_$(VERSION)_Linux_arm64.tar" -C "$(BUILDDIR)/release/" terrad
+	gzip -n -9 -f "$(BUILDDIR)/release/terra_$(VERSION)_Linux_arm64.tar"
 	rm $(BUILDDIR)/release/terrad
 	$(DOCKER) rm -f core-builder
 
@@ -208,7 +218,7 @@ proto-swagger:
 	bash scripts/protoc-swagger-gen.sh
 
 update-swagger-docs:
-	$(BINDIR)/statik -src=client/docs/swagger-ui -dest=client/docs -f -m
+	statik -src=client/docs/swagger-ui -dest=client/docs -f -m
 	@if [ -n "$(git status --porcelain)" ]; then \
         echo "Swagger docs are out of sync!";\
         exit 1;\
@@ -267,7 +277,7 @@ benchmark:
 	@go test -mod=readonly -bench=. ./...
 
 simulate:
-	@go test  -bench BenchmarkSimulation ./app -NumBlocks=200 -BlockSize 50 -Commit=true -Verbose=true -Enabled=true -Seed 1
+	@go test  -bench BenchmarkSimulation ./app -NumBlocks=200 -BlockSize 50 -Commit=true -Verbose=false -Enabled=true -Seed 2
 
 
 test-e2e-pmf:

@@ -1,5 +1,5 @@
-import { getMnemonics, blockInclusion, getLCDClient, getValueByIndexAndTypeAndKey, getEventsByIndex } from "../../helpers";
-import { Coins, Fee, MnemonicKey, MsgExecuteContract, MsgInstantiateContract, MsgRegisterFeeShare, MsgStoreCode } from "@terra-money/feather.js";
+import { getMnemonics, blockInclusion, getLCDClient, getValueByIndexAndTypeAndKey, getEventsByIndex, signAndBroadcastTx } from "../../helpers";
+import { Coins, MnemonicKey, MsgExecuteContract, MsgInstantiateContract, MsgRegisterFeeShare, MsgStoreCode } from "@terra-money/feather.js";
 import fs from "fs";
 import path from 'path';
 
@@ -16,7 +16,7 @@ describe("Feeshare Module (https://github.com/terra-money/core/tree/release/v2.6
     // instantiate to be used in the following tests
     // and finally save the contract address.
     beforeAll(async () => {
-        let tx = await wallet.createAndSignTx({
+        let result = await signAndBroadcastTx(wallet, {
             msgs: [new MsgStoreCode(
                 feeshareAccountAddress,
                 fs.readFileSync(path.join(__dirname, "/../../contracts/reflect.wasm")).toString("base64"),
@@ -24,7 +24,6 @@ describe("Feeshare Module (https://github.com/terra-money/core/tree/release/v2.6
             chainID: "test-1",
         });
 
-        let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
         await blockInclusion();
         let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
         let codeId = Number(getValueByIndexAndTypeAndKey(txResult.events, 0, "store_code", "code_id"));
@@ -39,11 +38,10 @@ describe("Feeshare Module (https://github.com/terra-money/core/tree/release/v2.6
             "Reflect contract " + Math.random(),
         );
 
-        tx = await wallet.createAndSignTx({
+        result = await signAndBroadcastTx(wallet, {
             msgs: [msgInstantiateContract],
             chainID: "test-1",
         });
-        result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
         await blockInclusion();
         txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
         contractAddress = getValueByIndexAndTypeAndKey(txResult.events, 0, "instantiate", "_contract_address");
@@ -66,7 +64,7 @@ describe("Feeshare Module (https://github.com/terra-money/core/tree/release/v2.6
 
     test('Must register fee share', async () => {
         // Register feeshare
-        let tx = await wallet.createAndSignTx({
+        let result = await signAndBroadcastTx(wallet, {
             msgs: [new MsgRegisterFeeShare(
                 contractAddress,
                 feeshareAccountAddress,
@@ -75,7 +73,6 @@ describe("Feeshare Module (https://github.com/terra-money/core/tree/release/v2.6
             chainID: "test-1",
         });
 
-        let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
         await blockInclusion();
 
         // Check the tx logs
@@ -144,12 +141,14 @@ describe("Feeshare Module (https://github.com/terra-money/core/tree/release/v2.6
                 }
             },
         );
-        tx = await wallet.createAndSignTx({
+        result = await signAndBroadcastTx(wallet, {
             msgs: [msgExecute],
             chainID: "test-1",
-            fee: new Fee(200_000, "400000uluna"),
+            fee: {
+                amount: [{ denom: "uluna", amount: "400000" }],
+                gas: "200000",
+            },
         });
-        result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
         await blockInclusion();
 
         // Check the tx logs have the expected events

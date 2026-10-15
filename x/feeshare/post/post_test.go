@@ -523,5 +523,5 @@ func (suite *AnteTestSuite) TestPostHandlerWithInvalidContractAddrOnExecution() 
 	)
 	suite.
 		Require().
-		ErrorIs(err, errorsmod.Wrapf(sdkerrors.ErrLogic, err.Error()))
+		ErrorIs(err, errorsmod.Wrap(sdkerrors.ErrLogic, err.Error()))
 }

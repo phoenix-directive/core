@@ -1,6 +1,6 @@
 
 import { MnemonicKey, MsgExecuteContract, MsgInstantiateContract, MsgStoreCode } from "@terra-money/feather.js";
-import { getMnemonics, getLCDClient, blockInclusion, ibcTransfer, getEventsByIndex } from "../../helpers";
+import { getMnemonics, getLCDClient, blockInclusion, ibcTransfer, getEventsByIndex, signAndBroadcastTx } from "../../helpers";
 import fs from "fs";
 import path from 'path';
 import { execSync, exec } from 'child_process';
@@ -36,15 +36,18 @@ describe("Wasm Module (https://github.com/CosmWasm/wasmd/releases/tag/v0.45.0) "
 
     // Validate that wasm module has the correct params
     test('Must deploy *cw20_base* and *cw20_ics20* contracts', async () => {
-        let tx = await wallet.createAndSignTx({
+        let result = await signAndBroadcastTx(wallet, {
             msgs: [
                 new MsgStoreCode(walletAddress, fs.readFileSync(path.join(__dirname, "/../../contracts/cw20_base.wasm")).toString("base64")),
                 new MsgStoreCode(walletAddress, fs.readFileSync(path.join(__dirname, "/../../contracts/cw20_ics20.wasm")).toString("base64"))
             ],
             chainID: "test-1",
+            fee: {
+                amount: [{ denom: "uluna", amount: "3000000" }],
+                gas: "20000000",
+            },
         });
 
-        let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
         await blockInclusion();
 
         let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
@@ -58,7 +61,7 @@ describe("Wasm Module (https://github.com/CosmWasm/wasmd/releases/tag/v0.45.0) "
 
     describe("after contracts has been deployed", () => {
         test("Must instantiate *cw20_base* and *cw20_ics20* contract", async () => {
-            let tx = await wallet.createAndSignTx({
+            let result = await signAndBroadcastTx(wallet, {
                 msgs: [new MsgInstantiateContract(
                     walletAddress,
                     walletAddress,
@@ -77,7 +80,6 @@ describe("Wasm Module (https://github.com/CosmWasm/wasmd/releases/tag/v0.45.0) "
                 )],
                 chainID: "test-1",
             });
-            let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
             await blockInclusion();
             await blockInclusion();
             let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
@@ -85,7 +87,7 @@ describe("Wasm Module (https://github.com/CosmWasm/wasmd/releases/tag/v0.45.0) "
             cw20ContractAddr = events[1].attributes[0].value;
             expect(cw20ContractAddr).toBeDefined();
 
-            tx = await wallet.createAndSignTx({
+            result = await signAndBroadcastTx(wallet, {
                 msgs: [new MsgInstantiateContract(
                     walletAddress,
                     walletAddress,
@@ -104,7 +106,6 @@ describe("Wasm Module (https://github.com/CosmWasm/wasmd/releases/tag/v0.45.0) "
                 )],
                 chainID: "test-1",
             });
-            result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
             await blockInclusion();
             txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
             events = getEventsByIndex(txResult.events, 0);
@@ -130,14 +131,12 @@ describe("Wasm Module (https://github.com/CosmWasm/wasmd/releases/tag/v0.45.0) "
             const relayerStart = exec(`relayer start "test1-test2" -p="events" -b=100 --flush-interval="1s" --time-threshold="1s" --home="${pathToRelayDir}" > ${pathToRelayDir}/relayer.log 2>&1`)
             relayerStart.unref();
 
-            const res = await LCD.chain1.ibc.channels("test-1", {
-                "pagination.limit": 1,
-                "pagination.reverse": "true",
-            });
+            const res = await LCD.chain1.ibc.channels("test-1");
+            const contractChannel = res.channels.find(channel => channel.port_id === `wasm.${ics20ContractAddr}`);
 
-            expect(res.channels[0]).toBeDefined();
-            expect(res.channels[0].channel_id).toBeDefined();
-            ics20ContractChannelId = res.channels[0].channel_id;
+            expect(contractChannel).toBeDefined();
+            expect(contractChannel?.channel_id).toBeDefined();
+            ics20ContractChannelId = contractChannel?.channel_id as string;
         }, 120_000)
 
 
@@ -152,7 +151,7 @@ describe("Wasm Module (https://github.com/CosmWasm/wasmd/releases/tag/v0.45.0) "
                     "remote_address":"${randomWalletAddress}"
                 }`).toString("base64");
 
-                let tx = await wallet.createAndSignTx({
+                let result = await signAndBroadcastTx(wallet, {
                     msgs: [new MsgExecuteContract(
                         walletAddress,
                         cw20ContractAddr,
@@ -166,7 +165,6 @@ describe("Wasm Module (https://github.com/CosmWasm/wasmd/releases/tag/v0.45.0) "
                     )],
                     chainID: "test-1",
                 });
-                let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
                 await blockInclusion();
                 let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
                 let events = getEventsByIndex(txResult.events, 0);

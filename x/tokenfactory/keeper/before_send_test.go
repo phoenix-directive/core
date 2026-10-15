@@ -10,7 +10,7 @@ import (
 	"github.com/terra-money/core/v2/x/tokenfactory/types"
 
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
-	wasmvmtypes "github.com/CosmWasm/wasmvm/v2/types"
+	wasmvmtypes "github.com/CosmWasm/wasmvm/v3/types"
 
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
@@ -100,6 +100,11 @@ func (s *KeeperTestSuite) TestBeforeSendHook() {
 			_, err = s.msgServer.Mint(sdk.WrapSDKContext(s.Ctx), types.NewMsgMint(s.TestAccs[0].String(), sdk.NewInt64Coin(denom, 1000000000)))
 			s.Require().NoError(err)
 
+			// Authorize this contract code for the test denom creator.
+			params := s.App.Keepers.TokenFactoryKeeper.GetParams(s.Ctx)
+			params.WhitelistedHooks = []*types.WhitelistedHook{{CodeID: codeID, DenomCreator: s.TestAccs[0].String()}}
+			s.Require().NoError(s.App.Keepers.TokenFactoryKeeper.SetParams(s.Ctx, params))
+
 			// set beforesend hook to the new denom
 			msg := types.NewMsgSetBeforeSendHook(s.TestAccs[0].String(), denom, cosmwasmAddress.String())
 			err = msg.ValidateBasic()
@@ -176,6 +181,11 @@ func (s *KeeperTestSuite) TestInfiniteTrackBeforeSend() {
 			if err := s.App.Keepers.BankKeeper.MintCoins(s.Ctx, minttypes.ModuleName, tokenToSend); err != nil {
 				s.Require().NoError(err)
 			}
+
+			// Authorize this contract code for the test denom creator.
+			params := s.App.Keepers.TokenFactoryKeeper.GetParams(s.Ctx)
+			params.WhitelistedHooks = []*types.WhitelistedHook{{CodeID: codeID, DenomCreator: s.TestAccs[0].String()}}
+			s.Require().NoError(s.App.Keepers.TokenFactoryKeeper.SetParams(s.Ctx, params))
 
 			// set beforesend hook to the new denom
 			// we register infinite loop contract here to test if we are gas metering properly
