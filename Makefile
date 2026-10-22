@@ -4,8 +4,13 @@ BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 COMMIT := $(shell git log -1 --format='%H')
 # Use the HEAD commit timestamp; callers can override it for reproducible builds.
 SOURCE_DATE_EPOCH ?= $(shell git log -1 --format=%ct)
-# Release archives require GNU tar. Set TAR=gtar on macOS.
-TAR ?= tar
+UNAME_S := $(shell uname -s)
+# Release archives require GNU tar (brew install gnu-tar on macOS).
+ifeq ($(UNAME_S),Darwin)
+  TAR ?= gtar
+else
+  TAR ?= tar
+endif
 LEDGER_ENABLED ?= true
 BINDIR ?= $(GOPATH)/bin
 BUILDDIR ?= $(CURDIR)/build
@@ -37,7 +42,6 @@ ifeq ($(LEDGER_ENABLED),true)
       build_tags += ledger
     endif
   else
-    UNAME_S = $(shell uname -s)
     ifeq ($(UNAME_S),OpenBSD)
       $(warning OpenBSD detected, disabling ledger support (https://github.com/cosmos/cosmos-sdk/issues/1988))
     else
@@ -152,7 +156,20 @@ build-linux-with-shared-library:
 	docker cp temp:/lib/libwasmvm.so $(BUILDDIR)/
 	docker rm temp
 
-build-release-amd64: go.sum $(BUILDDIR)/
+check-release-tar:
+	@$(TAR) --version 2>/dev/null | grep -q 'GNU tar' || { \
+		echo "Error: release archives require GNU tar (TAR=$(TAR))." >&2; \
+		if [ "$(UNAME_S)" = "Darwin" ]; then \
+			echo "Install it with: brew install gnu-tar" >&2; \
+		else \
+			echo "Install GNU tar and set TAR to its executable." >&2; \
+		fi; \
+		exit 1; \
+	}
+
+.PHONY: check-release-tar
+
+build-release-amd64: check-release-tar go.sum $(BUILDDIR)/
 	$(DOCKER) buildx create --name core-builder || true
 	$(DOCKER) buildx use core-builder
 	$(DOCKER) buildx build \
@@ -175,7 +192,7 @@ build-release-amd64: go.sum $(BUILDDIR)/
 	rm $(BUILDDIR)/release/terrad
 	$(DOCKER) rm -f core-builder
 
-build-release-arm64: go.sum $(BUILDDIR)/
+build-release-arm64: check-release-tar go.sum $(BUILDDIR)/
 	$(DOCKER) buildx create --name core-builder  || true
 	$(DOCKER) buildx use core-builder 
 	$(DOCKER) buildx build \
