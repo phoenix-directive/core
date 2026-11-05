@@ -1,6 +1,6 @@
 module github.com/terra-money/core/interchaintest
 
-go 1.25.0
+go 1.27.3
 
 replace (
 	github.com/ChainSafe/go-schnorrkel => github.com/ChainSafe/go-schnorrkel v0.0.0-20200405005733-88cbf1b4c40d

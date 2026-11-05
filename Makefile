@@ -16,7 +16,7 @@ BINDIR ?= $(GOPATH)/bin
 BUILDDIR ?= $(CURDIR)/build
 DOCKER := $(shell which docker)
 SHA256_CMD = sha256sum
-GO_VERSION ?= "1.24.13"
+GO_VERSION ?= "1.27.3"
 # don't override user values
 ifeq (,$(VERSION))
   VERSION := $(shell git describe --tags)
