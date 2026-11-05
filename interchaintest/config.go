@@ -3,10 +3,11 @@ package interchaintest
 import (
 	"fmt"
 
-	"github.com/strangelove-ventures/interchaintest/v8/chain/cosmos"
-	"github.com/strangelove-ventures/interchaintest/v8/ibc"
+	"github.com/cosmos/interchaintest/v10/chain/cosmos"
+	"github.com/cosmos/interchaintest/v10/ibc"
 
 	"github.com/cosmos/cosmos-sdk/types/module/testutil"
+	ratelimittypes "github.com/cosmos/ibc-apps/modules/rate-limiting/v10/types"
 )
 
 var (
@@ -56,5 +57,6 @@ var (
 
 func encoding() *testutil.TestEncodingConfig {
 	cfg := cosmos.DefaultEncoding()
+	ratelimittypes.RegisterInterfaces(cfg.InterfaceRegistry)
 	return &cfg
 }

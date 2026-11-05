@@ -1,4 +1,4 @@
-import { getMnemonics, getLCDClient, blockInclusion, getEventsByIndex } from "../../helpers";
+import { getMnemonics, getLCDClient, blockInclusion, getEventsByIndex, signAndBroadcastTx } from "../../helpers";
 import { ContinuousVestingAccount, Coins, MnemonicKey, MsgCreateVestingAccount, Coin, MsgCreatePeriodicVestingAccount, Period } from "@terra-money/feather.js";
 import moment from "moment";
 
@@ -62,7 +62,7 @@ describe("Auth Module (https://github.com/terra-money/cosmos-sdk/tree/release/v0
     test('Must create a random vesting account', async () => {
         const randomAccountAddress = new MnemonicKey().accAddress("terra");
         // Register a new vesting account
-        let tx = await wallet.createAndSignTx({
+        let result = await signAndBroadcastTx(wallet, {
             msgs: [new MsgCreateVestingAccount(
                 vestAccAddr1,
                 randomAccountAddress,
@@ -73,7 +73,6 @@ describe("Auth Module (https://github.com/terra-money/cosmos-sdk/tree/release/v0
             chainID: "test-1",
         });
 
-        let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
         await blockInclusion();
         let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
         const events = getEventsByIndex(txResult.events, 0);
@@ -167,7 +166,7 @@ describe("Auth Module (https://github.com/terra-money/cosmos-sdk/tree/release/v0
     test('Must create a periodic vesting account', async () => {
         const randomAccountAddress = new MnemonicKey().accAddress("terra");
         // Register a new vesting account
-        let tx = await wallet.createAndSignTx({
+        let result = await signAndBroadcastTx(wallet, {
             msgs: [new MsgCreatePeriodicVestingAccount (
                 vestAccAddr1,
                 randomAccountAddress,
@@ -177,7 +176,6 @@ describe("Auth Module (https://github.com/terra-money/cosmos-sdk/tree/release/v0
             chainID: "test-1",
         });
 
-        let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
         await blockInclusion();
         let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
         const events = getEventsByIndex(txResult.events, 0);

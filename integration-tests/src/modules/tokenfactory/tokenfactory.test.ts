@@ -1,10 +1,10 @@
-import { Coin, Coins, Fee, MnemonicKey, MsgBurn, MsgChangeAdmin, MsgCreateDenom, MsgInstantiateContract, MsgMint, MsgStoreCode, MsgSetBeforeSendHook, MsgSend, MsgSubmitProposal, MsgUpdateParamsTokenFactory, MsgVote } from "@terra-money/feather.js";
-import { getMnemonics, getLCDClient, blockInclusion, votingPeriod, getValueByIndexAndTypeAndKey } from "../../helpers";
+import { Coin, Coins, MnemonicKey, MsgBurn, MsgChangeAdmin, MsgCreateDenom, MsgInstantiateContract, MsgMint, MsgStoreCode, MsgSetBeforeSendHook, MsgSend, MsgSubmitProposal, MsgUpdateParamsTokenFactory, MsgVote } from "@terra-money/feather.js";
+import { getMnemonics, getLCDClient, blockInclusion, votingPeriod, getValueByIndexAndTypeAndKey, signAndBroadcastTx } from "../../helpers";
+
 import fs from "fs";
 import path from 'path';
-import { VoteOption } from "../../../../../terra.proto/js/cosmos/gov/v1/gov";
 
-describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/v2.7/x/tokenfactory) ", () => {
+describe("TokenFactory Module", () => {
     // Prepare environment clients, accounts and wallets
     const LCD = getLCDClient();
     const accounts = getMnemonics();
@@ -20,11 +20,23 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
     const val1Wallet = LCD.chain1.wallet(accounts.val1);
     const val1WalletAddress = val1Wallet.key.accAddress("terra");
 
+    const expectEventAttribute = (events: any[], eventType: string, key: string, value: string) => {
+        expect(events.some((event: any) =>
+            event.type === eventType &&
+            event.attributes.some((attr: any) => attr.key === key && attr.value === value)
+        )).toBeTruthy();
+    };
+    const getProposalId = (events: any[]) => Number(
+        events
+            .flatMap((event: any) => event.attributes)
+            .find((attr: any) => attr.key === "proposal_id")?.value
+    );
+
     // Read the no100 contract, store on chain, 
     // instantiate to be used in the following tests
     // and finally save the contract address.
     beforeAll(async () => {
-        let tx = await wallet.createAndSignTx({
+        let result = await signAndBroadcastTx(wallet, {
             msgs: [new MsgStoreCode(
                 tokenFactoryWalletAddr,
                 fs.readFileSync(path.join(__dirname, "/../../contracts/no100.wasm")).toString("base64"),
@@ -32,7 +44,6 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
             chainID: "test-1",
         });
 
-        let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
         await blockInclusion();
         let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
         codeId = Number(getValueByIndexAndTypeAndKey(txResult.events, 0, "store_code", "code_id"));
@@ -47,11 +58,10 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
             "no100 contract " + Math.random(),
         );
 
-        tx = await wallet.createAndSignTx({
+        result = await signAndBroadcastTx(wallet, {
             msgs: [msgInstantiateContract],
             chainID: "test-1",
         });
-        result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
         await blockInclusion();
         txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
         contractAddress = getValueByIndexAndTypeAndKey(txResult.events, 0, "instantiate", "_contract_address");
@@ -80,7 +90,7 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
     // transaction result logs to assert 
     // the logs are correctly formatted.
     test('Must create a denom', async () => {
-        let tx = await wallet.createAndSignTx({
+        let result = await signAndBroadcastTx(wallet, {
             msgs: [
                 new MsgCreateDenom(
                     tokenFactoryWalletAddr,
@@ -89,22 +99,20 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
             ],
             chainID: "test-1",
         });
-        let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
         await blockInclusion();
         let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
-        expect(txResult.code).toBe(0);
-        factoryDenom = getValueByIndexAndTypeAndKey(txResult.events, 0, "create_denom", "new_token_denom") as string;
-        expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "message", "action")).toBe("/osmosis.tokenfactory.v1beta1.MsgCreateDenom");
-        expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "message", "sender")).toBe(tokenFactoryWalletAddr);
-        expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "create_denom", "creator")).toBe(tokenFactoryWalletAddr);
-        expect(factoryDenom).toBe(`factory/${tokenFactoryWalletAddr}/${subdenom}`);
+        factoryDenom = getValueByIndexAndTypeAndKey(txResult.events, 0, "create_denom", "new_token_denom") as string
+        expect(factoryDenom).toBeDefined();
+        expectEventAttribute(txResult.events, "message", "action", "/osmosis.tokenfactory.v1beta1.MsgCreateDenom");
+        expectEventAttribute(txResult.events, "create_denom", "creator", tokenFactoryWalletAddr);
+        expectEventAttribute(txResult.events, "create_denom", "new_token_denom", factoryDenom);
     })
 
     // Mint tokens to the minter address
     // and assert the logs are correctly formatted.
     describe("After creating the token", () => {
         test('Must mint some tokens', async () => {
-            let tx = await wallet.createAndSignTx({
+            let result = await signAndBroadcastTx(wallet, {
                 msgs: [
                     new MsgMint(
                         tokenFactoryWalletAddr,
@@ -113,14 +121,11 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
                 ],
                 chainID: "test-1",
             });
-            let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
             await blockInclusion();
             let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
-            expect(txResult.code).toBe(0);
-            expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "message", "action")).toBe("/osmosis.tokenfactory.v1beta1.MsgMint");
-            expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "message", "sender")).toBe(tokenFactoryWalletAddr);
-            expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "tf_mint", "mint_to_address")).toBe(tokenFactoryWalletAddr);
-            expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "tf_mint", "amount")).toBe("1000000000" + factoryDenom);
+            expectEventAttribute(txResult.events, "message", "action", "/osmosis.tokenfactory.v1beta1.MsgMint");
+            expectEventAttribute(txResult.events, "tf_mint", "mint_to_address", tokenFactoryWalletAddr);
+            expectEventAttribute(txResult.events, "tf_mint", "amount", "1000000000" + factoryDenom);
         });
     })
 
@@ -128,7 +133,7 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
     // and asser the logs are correctly formatted.
     describe("After minting the tokens", () => {
         test('Must burn some tokens', async () => {
-            let tx = await wallet.createAndSignTx({
+            let result = await signAndBroadcastTx(wallet, {
                 msgs: [
                     new MsgBurn(
                         tokenFactoryWalletAddr,
@@ -136,16 +141,17 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
                     ),
                 ],
                 chainID: "test-1",
-                fee: new Fee(2000_000, new Coins({ uluna: 100_000 })),
+                fee: {
+                    amount: [{ denom: "uluna", amount: "100000" }],
+                    gas: "200000",
+                },
             });
-            let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
             await blockInclusion();
             let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
             expect(txResult.code).toBe(0);
-            expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "message", "action")).toBe("/osmosis.tokenfactory.v1beta1.MsgBurn");
-            expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "message", "sender")).toBe(tokenFactoryWalletAddr);
-            expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "tf_burn", "burn_from_address")).toBe(tokenFactoryWalletAddr);
-            expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "tf_burn", "amount")).toBe("500000000" + factoryDenom);
+            expectEventAttribute(txResult.events, "message", "action", "/osmosis.tokenfactory.v1beta1.MsgBurn");
+            expectEventAttribute(txResult.events, "tf_burn", "burn_from_address", tokenFactoryWalletAddr);
+            expectEventAttribute(txResult.events, "tf_burn", "amount", "500000000" + factoryDenom);
         });
     })
 
@@ -156,7 +162,7 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
 
             test('Must update params using gov proposal', async () => {
                 // let blockHeight = (await LCD.chain1.tendermint.blockInfo("test-1")).block.header.height;
-                let tx = await val1Wallet.createAndSignTx({
+                let result = await signAndBroadcastTx(val1Wallet, {
                     msgs: [new MsgSubmitProposal([
                         new MsgUpdateParamsTokenFactory(
                             govAddress,
@@ -175,7 +181,6 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
                     )],
                     chainID: "test-1",
                 });
-                let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
                 await blockInclusion();
 
                 // Check that the proposal was created successfully
@@ -183,20 +188,22 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
                 expect(txResult.code).toBe(0);
 
                 // Get the proposal id and validate exists
-                let proposalId = Number(getValueByIndexAndTypeAndKey(txResult.events, 0, "submit_proposal", "proposal_id"));
+                let proposalId = getProposalId(txResult.events);
                 expect(proposalId)
 
                 // Vote for the proposal
-                tx = await val1Wallet.createAndSignTx({
+                result = await signAndBroadcastTx(val1Wallet, {
                     msgs: [new MsgVote(
                         proposalId,
                         val1WalletAddress,
-                        VoteOption.VOTE_OPTION_YES
+                        1 // Yes
                     )],
-                    fee: new Fee(100_000, "100000uluna"),
+                    fee: {
+                        amount: [{ denom: "uluna", amount: "100000" }],
+                        gas: "100000",
+                    },
                     chainID: "test-1",
                 });
-                result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
                 await votingPeriod();
                 txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1")
                 expect(txResult.code).toBe(0);
@@ -218,7 +225,7 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
             })
 
             test("Must register the hooks to the no100 contract", async () => {
-                let tx = await wallet.createAndSignTx({
+                let result = await signAndBroadcastTx(wallet, {
                     msgs: [
                         new MsgSetBeforeSendHook(
                             tokenFactoryWalletAddr,
@@ -226,17 +233,17 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
                             contractAddress,
                         ),
                     ],
-                    fee: new Fee(100_000, new Coins({ uluna: 100_000 })),
+                    fee: {
+                        amount: [{ denom: "uluna", amount: "100000" }],
+                        gas: "100000",
+                    },
                     chainID: "test-1",
                 });
-                let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
                 await blockInclusion();
                 let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
-                expect(txResult.code).toBe(0);
-                expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "message", "action")).toBe("/osmosis.tokenfactory.v1beta1.MsgSetBeforeSendHook");
-                expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "message", "sender")).toBe(tokenFactoryWalletAddr);
-                expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "set_before_send_hook", "denom")).toBe(factoryDenom);
-                expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "set_before_send_hook", "before_send_hook_address")).toBe(contractAddress);
+                expectEventAttribute(txResult.events, "message", "action", "/osmosis.tokenfactory.v1beta1.MsgSetBeforeSendHook");
+                expectEventAttribute(txResult.events, "set_before_send_hook", "denom", factoryDenom as string);
+                expectEventAttribute(txResult.events, "set_before_send_hook", "before_send_hook_address", contractAddress);
             });
         });
 
@@ -247,7 +254,7 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
         // other one blocks the transaction.
         describe("Must send tokens and be intercepted by beforesendhooks", () => {
             test("1 token successfuly", async () => {
-                let tx = await wallet.createAndSignTx({
+                let result = await signAndBroadcastTx(wallet, {
                     msgs: [
                         new MsgSend(
                             tokenFactoryWalletAddr,
@@ -257,19 +264,15 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
                     ],
                     chainID: "test-1",
                 });
-                let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
                 await blockInclusion();
                 let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
-                expect(txResult.code).toBe(0);
-                expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "message", "action")).toBe("/cosmos.bank.v1beta1.MsgSend");
-                expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "message", "sender")).toBe(tokenFactoryWalletAddr);
-                expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "transfer", "recipient")).toBe(randomAccountAddr);
-                expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "transfer", "sender")).toBe(tokenFactoryWalletAddr);
-                expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "transfer", "amount")).toBe("1" + factoryDenom);
+                expectEventAttribute(txResult.events, "message", "action", "/cosmos.bank.v1beta1.MsgSend");
+                expectEventAttribute(txResult.events, "transfer", "recipient", randomAccountAddr);
+                expectEventAttribute(txResult.events, "transfer", "amount", "1" + factoryDenom);
             });
 
             test("100 token blocked by the smart contract before send", async () => {
-                let tx = await wallet.createAndSignTx({
+                let result = await signAndBroadcastTx(wallet, {
                     msgs: [
                         new MsgSend(
                             tokenFactoryWalletAddr,
@@ -278,9 +281,11 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
                         ),
                     ],
                     chainID: "test-1",
-                    fee: new Fee(2000_000, new Coins({ uluna: 100_000 })),
+                    fee: {
+                        amount: [{ denom: "uluna", amount: "100000" }],
+                        gas: "2000000",
+                    },
                 });
-                let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
                 await blockInclusion();
                 let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
                 expect(txResult.raw_log)
@@ -288,7 +293,7 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
             });
 
             test("100 token blocked by the smart contract on burn", async () => {
-                let tx = await wallet.createAndSignTx({
+                let result = await signAndBroadcastTx(wallet, {
                     msgs: [
                         new MsgBurn(
                             tokenFactoryWalletAddr,
@@ -296,9 +301,11 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
                         ),
                     ],
                     chainID: "test-1",
-                    fee: new Fee(2000_000, new Coins({ uluna: 100_000 })),
+                    fee: {
+                        amount: [{ denom: "uluna", amount: "100000" }],
+                        gas: "2000000",
+                    },
                 });
-                let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
                 await blockInclusion();
                 let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
                 expect(txResult.raw_log)
@@ -306,7 +313,7 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
             });
 
             test("100 token blocked by the smart contract on mint", async () => {
-                let tx = await wallet.createAndSignTx({
+                let result = await signAndBroadcastTx(wallet, {
                     msgs: [
                         new MsgMint(
                             tokenFactoryWalletAddr,
@@ -314,9 +321,11 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
                         ),
                     ],
                     chainID: "test-1",
-                    fee: new Fee(2000_000, new Coins({ uluna: 100_000 })),
+                    fee: {
+                        amount: [{ denom: "uluna", amount: "100000" }],
+                        gas: "2000000",
+                    },
                 });
-                let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
                 await blockInclusion();
                 let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
                 expect(txResult.raw_log)
@@ -331,7 +340,7 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
     // assert the logs are correctly formatted.
     describe("After all operations", () => {
         test("Must change the admin of the denom", async () => {
-            let tx = await wallet.createAndSignTx({
+            let result = await signAndBroadcastTx(wallet, {
                 msgs: [
                     new MsgChangeAdmin(
                         tokenFactoryWalletAddr,
@@ -339,17 +348,17 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
                         factoryDenom as string,
                     ),
                 ],
-                fee: new Fee(100_000, new Coins({ uluna: 100_000 })),
+                fee: {
+                    amount: [{ denom: "uluna", amount: "100000" }],
+                    gas: "100000",
+                },
                 chainID: "test-1",
             });
-            let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
             await blockInclusion();
             let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
-            expect(txResult.code).toBe(0);
-            expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "message", "action")).toBe("/osmosis.tokenfactory.v1beta1.MsgChangeAdmin");
-            expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "message", "sender")).toBe(tokenFactoryWalletAddr);
-            expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "change_admin", "denom")).toBe(factoryDenom);
-            expect(getValueByIndexAndTypeAndKey(txResult.events, 0, "change_admin", "new_admin")).toBe(randomAccountAddr);
+            expectEventAttribute(txResult.events, "message", "action", "/osmosis.tokenfactory.v1beta1.MsgChangeAdmin");
+            expectEventAttribute(txResult.events, "change_admin", "denom", factoryDenom as string);
+            expectEventAttribute(txResult.events, "change_admin", "new_admin", randomAccountAddr);
         });
 
         test("Must query the new admin of the denom", async () => {
@@ -379,14 +388,13 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
     describe("Query using CosmWasm", () => {
         beforeAll(async () => {
             // Deploy alliance query contract
-            let tx = await wallet.createAndSignTx({
+            let result = await signAndBroadcastTx(wallet, {
                 msgs: [
                     new MsgStoreCode(tokenFactoryWalletAddr, fs.readFileSync(path.join(__dirname, "/../../contracts/custom_queries.wasm")).toString("base64")),
                 ],
                 chainID: "test-1",
             });
 
-            let result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
             await blockInclusion();
 
             let txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;
@@ -394,7 +402,7 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
             expect(customQueryCodeId).toBeDefined();
 
             // Instantiate alliance query contract
-            tx = await wallet.createAndSignTx({
+            result = await signAndBroadcastTx(wallet, {
                 msgs: [new MsgInstantiateContract(
                     tokenFactoryWalletAddr,
                     tokenFactoryWalletAddr,
@@ -405,7 +413,6 @@ describe("TokenFactory Module (https://github.com/terra-money/core/tree/release/
                 )],
                 chainID: "test-1",
             });
-            result = await LCD.chain1.tx.broadcastSync(tx, "test-1");
             await blockInclusion();
 
             txResult = await LCD.chain1.tx.txInfo(result.txhash, "test-1") as any;

@@ -4,7 +4,7 @@ import { StakeAuthorization, MsgGrantAuthorization, AuthorizationGrant, Coin, Ms
 import { AuthorizationType } from "@terra-money/terra.proto/cosmos/staking/v1beta1/authz";
 import moment from "moment";
 import { blockInclusion } from "../../helpers/const";
-import { getEventsByIndex } from "../../helpers";
+import { getEventsByIndex, signAndBroadcastTx } from "../../helpers";
 
 describe("Authz Module", () => {
     const LCD = getLCDClient();
@@ -18,7 +18,7 @@ describe("Authz Module", () => {
     const val2Addr = accounts.val2.valAddress("terra");
 
     test('Must register the granter', async () => {
-        let tx = await granterWallet.createAndSignTx({
+        let result = await signAndBroadcastTx(granterWallet, {
             msgs: [new MsgGrantAuthorization(
                 granterAddr,
                 granteeAddr,
@@ -32,7 +32,6 @@ describe("Authz Module", () => {
             )],
             chainID: "test-2",
         });
-        let result = await LCD.chain2.tx.broadcastSync(tx, "test-2");
         await blockInclusion();
 
         // Check the MsgGrantAuthorization executed as expected 
@@ -82,7 +81,7 @@ describe("Authz Module", () => {
 
     describe("Grantee must execute", () => {
         test("delegation on belhalf of granter", async () => {
-            let tx = await granteeWallet.createAndSignTx({
+            let result = await signAndBroadcastTx(granteeWallet, {
                 msgs: [new MsgExecAuthorized(
                     granteeAddr,
                     [new MsgDelegate(
@@ -93,7 +92,6 @@ describe("Authz Module", () => {
                 )],
                 chainID: "test-2",
             });
-            let result = await LCD.chain2.tx.broadcastSync(tx, "test-2");
             await blockInclusion();
 
             let txResult = await LCD.chain2.tx.txInfo(result.txhash, "test-2") as any;

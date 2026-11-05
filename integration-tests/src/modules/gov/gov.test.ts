@@ -1,5 +1,5 @@
-import { getLCDClient, blockInclusion, votingPeriod, getMnemonics, getValueByIndexAndTypeAndKey } from "../../helpers";
-import { Coins, MsgVote, Fee, MsgSubmitProposal, Proposal, Int } from "@terra-money/feather.js";
+import { getLCDClient, blockInclusion, votingPeriod, getMnemonics, getValueByIndexAndTypeAndKey, signAndBroadcastTx } from "../../helpers";
+import { Coins, MsgVote, MsgSubmitProposal, Proposal, Int } from "@terra-money/feather.js";
 import { ProposalStatus, VoteOption } from "@terra-money/terra.proto/cosmos/gov/v1beta1/gov";
 
 describe("Governance Module (https://github.com/terra-money/cosmos-sdk/tree/release/v0.47.x/x/gov) ", () => {
@@ -195,11 +195,10 @@ describe("Governance Module (https://github.com/terra-money/cosmos-sdk/tree/rele
             "SUMMARY Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec nec varius odio. Phasellus tellus felis, varius ut sapien sit amet, imperdiet vehicula metus. Nullam convallis, erat sit amet ultrices ornare, quam metus ornare elit, quis sollicitudin dolor lorem non risus. Pellentesque pretium augue"
         );
         // Create an alliance proposal sign and submit on chain-2
-        let tx = await val2Wallet.createAndSignTx({
+        let result = await signAndBroadcastTx(val2Wallet, {
             msgs: [msgProposal],
             chainID: "test-2",
         });
-        let result = await LCD.chain2.tx.broadcastSync(tx, "test-2");
         await blockInclusion();
 
         // Check that the proposal was created successfully
@@ -211,16 +210,18 @@ describe("Governance Module (https://github.com/terra-money/cosmos-sdk/tree/rele
         expect(proposalId)
 
         // Vote for the proposal
-        tx = await val2Wallet.createAndSignTx({
+        result = await signAndBroadcastTx(val2Wallet, {
             msgs: [new MsgVote(
                 proposalId,
                 val2WalletAddress,
                 VoteOption.VOTE_OPTION_YES
             )],
-            fee: new Fee(100_000, "100000uluna"),
+            fee: {
+                amount: [{ denom: "uluna", amount: "100000" }],
+                gas: "100000",
+            },
             chainID: "test-2",
         });
-        result = await LCD.chain2.tx.broadcastSync(tx, "test-2");
         await votingPeriod();
         txResult = await LCD.chain2.tx.txInfo(result.txhash, "test-2")
         expect(txResult.code).toBe(0);

@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/CosmWasm/wasmd/x/wasm/keeper"
-	wasmvmtypes "github.com/CosmWasm/wasmvm/v2/types"
+	wasmvmtypes "github.com/CosmWasm/wasmvm/v3/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -70,7 +70,7 @@ func TestSetMetadata(t *testing.T) {
 			Display:     "SUN",
 			DenomUnits: []bindings.DenomUnit{
 				{
-					Denom:    "factory/cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr/SUN",
+					Denom:    fmt.Sprintf("factory/%s/SUN", reflect.String()),
 					Exponent: 0,
 					Aliases:  []string{"SUN"},
 				},
@@ -80,7 +80,7 @@ func TestSetMetadata(t *testing.T) {
 					Aliases:  []string{"SUN"},
 				},
 			},
-			Base:   "factory/cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr/SUN",
+			Base:   fmt.Sprintf("factory/%s/SUN", reflect.String()),
 			Name:   "SUN",
 			Symbol: "SUN",
 		},
@@ -90,13 +90,13 @@ func TestSetMetadata(t *testing.T) {
 
 	// Set Metadata
 	setMetadataMsg := bindings.TokenMsg{SetMetadata: &bindings.SetMetadata{
-		Denom: "factory/cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr/SUN",
+		Denom: fmt.Sprintf("factory/%s/SUN", reflect.String()),
 		Metadata: bindings.Metadata{
 			Description: "SUN is a stablecoin pegged to the value of the sun",
 			Display:     "SUN",
 			DenomUnits: []bindings.DenomUnit{
 				{
-					Denom:    "factory/cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr/SUN",
+					Denom:    fmt.Sprintf("factory/%s/SUN", reflect.String()),
 					Exponent: 0,
 					Aliases:  []string{"SUN"},
 				},
@@ -106,7 +106,7 @@ func TestSetMetadata(t *testing.T) {
 					Aliases:  []string{"SUN"},
 				},
 			},
-			Base:   "factory/cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr/SUN",
+			Base:   fmt.Sprintf("factory/%s/SUN", reflect.String()),
 			Name:   "SUN",
 			Symbol: "SUN",
 		},
@@ -198,7 +198,7 @@ func TestCreateDenomWithMetadataMsg(t *testing.T) {
 			Display:     "SUN",
 			DenomUnits: []bindings.DenomUnit{
 				{
-					Denom:    "factory/cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr/SUN",
+					Denom:    fmt.Sprintf("factory/%s/SUN", reflect.String()),
 					Exponent: 0,
 					Aliases:  []string{"SUN"},
 				},
@@ -208,7 +208,7 @@ func TestCreateDenomWithMetadataMsg(t *testing.T) {
 					Aliases:  []string{"SUN"},
 				},
 			},
-			Base:   "factory/cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr/SUN",
+			Base:   fmt.Sprintf("factory/%s/SUN", reflect.String()),
 			Name:   "SUN",
 			Symbol: "SUN",
 		},

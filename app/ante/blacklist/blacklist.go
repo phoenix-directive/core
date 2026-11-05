@@ -478,9 +478,6 @@ var Blacklist = map[string]bool{
 	"terra14twqn6estwc8zqpm3t37glwc76t39dytg5gq4q": true, // attacker
 	"terra1pgsp7l5y983hx3t8jmjwq34dptjnghk4jessz9": true, // attacker
 	"terra1zsdyv4azfdnuqkrlp3npa705sjdttm9aj5qrvf": true, // attacker
-	"terra14hwe4te0aeyg7wtatxc6xk2yd420e7zyu076pw": true, // attacker
-	"terra1xa3pmdxxudegk9wysvjundsknlaa6frgs864vz": true, // attacker
-	"terra1uaspcnh3r5etr3szfmgn6ecuum00dm3l7fstvz": true, // attacker
 }
 
 // This account is used by the v2.22 chain upgrade simulation only.

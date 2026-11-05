@@ -95,8 +95,7 @@ type TerraApp struct {
 	invCheckPeriod uint
 
 	// the module manager
-	mm           *module.Manager
-	basicManager module.BasicManager
+	mm *module.Manager
 	// the configurator
 	configurator module.Configurator
 }
@@ -160,6 +159,7 @@ func NewTerraApp(
 	app.mm = module.NewManager(appModules(app, encodingConfig, skipGenesisInvariants)...)
 
 	// NOTE: Any module instantiated in the module manager that is later modified
+	app.mm.SetOrderPreBlockers(preBlockersOrder...)
 	// must be passed by reference here.
 	app.mm.SetOrderBeginBlockers(beginBlockersOrder...)
 
@@ -225,15 +225,6 @@ func NewTerraApp(
 		if err := app.LoadLatestVersion(); err != nil {
 			tmos.Exit(err.Error())
 		}
-
-		// Initialize and seal the capability keeper so all persistent capabilities
-		// are loaded in-memory and prevent any further modules from creating scoped
-		// sub-keepers.
-		// This must be done during creation of baseapp rather than in InitChain so
-		// that in-memory capabilities get regenerated on app restart.
-		// Note that since this reads from the store, we can only perform it when
-		// `loadLatest` is set to true.
-		app.Keepers.CapabilityKeeper.Seal()
 	}
 
 	return app
@@ -407,7 +398,7 @@ func (app TerraApp) GetAppCodec() codec.Codec {
 
 // DefaultGenesis returns a default genesis from the registered AppModuleBasic's.
 func (a *TerraApp) DefaultGenesis() map[string]json.RawMessage {
-	return a.basicManager.DefaultGenesis(a.appCodec)
+	return NewDefaultGenesisState(a.appCodec)
 }
 
 // LegacyAmino returns SimApp's amino codec.
