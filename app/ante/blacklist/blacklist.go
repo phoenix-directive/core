@@ -460,6 +460,12 @@ var Blacklist = map[string]bool{
 	"terra1qmrzf2hzytf6fpuppl4qjs79mev92c5ecch2j2": true, // victim
 	"terra1xzawkluxh7lahk9havmj38eacukvrran3dhakf": true, // victim
 	"terra1rf58rw0cnzz3f74g94l5jy0mcv9nsekjk40lkh": true, // victim
+	// Victims explicitly identified in the corrected 2026-10-21 report.
+	"terra18qrnsf3ezfpupp2q3kzvdcdes70zes0awn7vzs": true, // victim
+	"terra1lhhuy83tal3mvv7tj06457zdfnjcx977hj58g5": true, // victim
+	"terra1f66y5zw73eazq8h6fj5ys2xaj3nv4txja0qtan": true, // victim
+	"terra10zwy3xhhhacsd9tjqpas6wpfst5ztnetflugfd": true, // victim
+	"terra18322n4kk8sw5x3lp4kaa2wujps83h9gpvftg9x": true, // victim
 	"terra1agp4wwzgn6fuxqrsqgjvfhvmfqf63ekvn9nvyh": true, // attacker
 	"terra1dmfp9wz7uguz99sac777wm6pdmkm7d2vjg5vda": true, // attacker
 	"terra12jkvks5d4q8x4pc02aqvd8ljfhqc3da9y3ern7": true, // attacker
@@ -478,6 +484,16 @@ var Blacklist = map[string]bool{
 	"terra14twqn6estwc8zqpm3t37glwc76t39dytg5gq4q": true, // attacker
 	"terra1pgsp7l5y983hx3t8jmjwq34dptjnghk4jessz9": true, // attacker
 	"terra1zsdyv4azfdnuqkrlp3npa705sjdttm9aj5qrvf": true, // attacker
+	// Attacker wallets identified in the corrected 2026-10-21 report.
+	"terra19djtx5u9lrx26n9x9k6g09qk6rc9a0nr0h3gh6": true, // attacker: collector
+	"terra15xm7vu6htukf92htynx6gaemfxvafsp4gqknk9": true, // attacker: helper
+	"terra1y9e9uu65x2qfdqyjcevrzwnsxldltldq4mesj4": true, // attacker: consolidation
+	"terra1s6qty8hr0j47s4msscrhf4stukv23pkhz8lzkw": true, // attacker: collector
+	"terra1xgcangjrxqpxttzsea0eac59ty07uuvnwh4jgr": true, // attacker: collector
+	"terra1andm8a06zarvxgg58yjupmhehl03xc35zrgecy": true, // attacker: collector
+	"terra10jgnetp0hguyya92drmm23lmx8lckd85hzyu6r": true, // attacker: collector
+	"terra1m842k7xzlfmmgckv63ktc3uylh8zyap6gfz2kj": true, // attacker: collector
+	"terra1sfjlvddju0zdp5ce6wuvtw9l4y5lp9swkk3nmn": true, // attacker: collector (corrected from victim)
 }
 
 // This account is used by the v2.22 chain upgrade simulation only.
