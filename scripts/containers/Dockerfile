@@ -1,4 +1,4 @@
-FROM golang:1.20-bullseye AS build
+FROM golang:1.27.3-bookworm AS build
 
 RUN apt update && apt install build-essential -y
 
@@ -7,7 +7,7 @@ COPY . /terrad
 
 RUN make build
 
-FROM golang:1.20-bullseye AS run
+FROM golang:1.27.3-bookworm AS run
 COPY ./scripts/containers/build-wrapper.sh /terrad/build-wrapper.sh
 RUN chmod +x /terrad/build-wrapper.sh
 RUN wget https://github.com/CosmWasm/wasmvm/releases/download/v1.5.2/libwasmvm.x86_64.so -P /usr/lib/

@@ -1,4 +1,4 @@
-FROM golang:1.24.13-bookworm AS go-builder
+FROM golang:1.27.3-bookworm AS go-builder
 
 # Install minimum necessary dependencies, build Cosmos SDK, remove packages
 RUN apt update

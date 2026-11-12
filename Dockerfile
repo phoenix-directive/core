@@ -10,7 +10,7 @@ FROM --platform=${BUILDPLATFORM} ${BASE_IMAGE} AS base
 ###############################################################################
 
 FROM base AS builder-stage-1
-ARG GO_VERSION="1.24.13"
+ARG GO_VERSION="1.27.3"
 ARG GIT_COMMIT
 ARG GIT_VERSION
 ARG BUILDPLATFORM
