@@ -93,8 +93,6 @@ ARG GOOS=linux \
 ENV GOOS=$GOOS \ 
     GOARCH=$GOARCH
 
-ENV GOPROXY=file:///modcache,https://proxy.golang.org,direct
-
 # Copy the remaining files
 COPY . .
 
